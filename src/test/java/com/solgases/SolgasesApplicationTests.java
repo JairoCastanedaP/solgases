@@ -3,6 +3,8 @@ package com.solgases;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.solgases.category.repository.CategoryRepository;
+import com.solgases.product.repository.ProductRepository;
+import com.solgases.unitofmeasure.repository.UnitOfMeasureRepository;
 import io.swagger.v3.oas.models.OpenAPI;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,12 @@ class SolgasesApplicationTests {
     // Repositories are not created without JPA auto-configuration, so the one required by the services is mocked
     @MockitoBean
     private CategoryRepository categoryRepository;
+
+    @MockitoBean
+    private ProductRepository productRepository;
+
+    @MockitoBean
+    private UnitOfMeasureRepository unitOfMeasureRepository;
 
     @Autowired
     private ApplicationContext context;
