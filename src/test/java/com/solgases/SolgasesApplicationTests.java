@@ -2,11 +2,13 @@ package com.solgases;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.solgases.category.repository.CategoryRepository;
 import io.swagger.v3.oas.models.OpenAPI;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
  * Verifies that the application context starts without a database.
@@ -20,6 +22,10 @@ import org.springframework.context.ApplicationContext;
                 + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration"
 })
 class SolgasesApplicationTests {
+
+    // Repositories are not created without JPA auto-configuration, so the one required by the services is mocked
+    @MockitoBean
+    private CategoryRepository categoryRepository;
 
     @Autowired
     private ApplicationContext context;
