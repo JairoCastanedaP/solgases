@@ -3,6 +3,8 @@ package com.solgases;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.solgases.category.repository.CategoryRepository;
+import com.solgases.inventory.repository.InventoryMovementRepository;
+import com.solgases.inventory.repository.InventoryRepository;
 import com.solgases.product.repository.ProductRepository;
 import com.solgases.unitofmeasure.repository.UnitOfMeasureRepository;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -34,6 +36,12 @@ class SolgasesApplicationTests {
 
     @MockitoBean
     private UnitOfMeasureRepository unitOfMeasureRepository;
+
+    @MockitoBean
+    private InventoryRepository inventoryRepository;
+
+    @MockitoBean
+    private InventoryMovementRepository inventoryMovementRepository;
 
     @Autowired
     private ApplicationContext context;
