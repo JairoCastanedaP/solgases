@@ -59,17 +59,13 @@ No se deberán introducir frameworks adicionales sin justificación y autorizaci
 
 ### 4.2 Arquitectura
 
-Se utilizará la estructura estándar de Maven.
+Se utilizará un reactor Maven de tres módulos, siguiendo el modelo Clean Architecture definido en `lineamientos.md` y la estructura F2/02 del curso:
 
-La organización del código deberá ser por feature, manteniendo dentro de cada feature las capas que sean necesarias:
+- `domain`: módulo con modelos y reglas de negocio en Java puro.
+- `application`: módulo con casos de uso, puertos, DTOs de aplicación y excepciones.
+- `infrastructure`: módulo con API REST, persistencia JPA, mappers, configuración Spring y clase principal.
 
-- `controller`
-- `service`
-- `repository`
-- `entity`
-- `dto`
-
-La estructura deberá evitar paquetes técnicos globales que mezclen funcionalidades no relacionadas.
+La refactorización de features existentes preservará contratos REST y comportamiento, y se verificará con las pruebas existentes. Esta decisión arquitectónica no cambia el alcance funcional del MVP ni resuelve reglas de negocio pendientes.
 
 ### 4.3 Categorías
 
