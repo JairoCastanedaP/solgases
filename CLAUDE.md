@@ -6,7 +6,7 @@ The project-wide technical and architectural standards are defined in:
 
 `docs/lineamientos.md`
 
-This file was originally refined as `CLAUDE.md` during the course and was intentionally renamed to `lineamientos.md` so that the standards remain tool-agnostic and can be reused with Claude Code, GitHub Copilot, Codex, or other AI-assisted development tools.
+`docs/lineamientos.md` contains the tool-agnostic technical standards. This `CLAUDE.md` is the entry point for Claude Code and describes how to apply the project documentation during iterative work.
 
 Always read and follow `docs/lineamientos.md` before making significant changes to the project.
 
@@ -27,24 +27,18 @@ Before starting development work, consult the relevant documentation under `docs
   - Detailed scope and incremental implementation plan for MVP1.
 
 - `docs/prompt_inicial_mvp1.md`
-  - Instructions for the initial MVP1 analysis and architecture review.
+  - Historical initial prompt and context for MVP1; it is not required for each review cycle.
 
 ## Working rules
 
 1. Do not invent requirements, business rules, technologies, or functionality.
-2. Before significant changes, inspect the existing code and relevant project documentation.
-3. Respect the architecture, technologies, conventions, and restrictions defined in `docs/lineamientos.md`.
-4. Work incrementally according to `docs/mvp1.md`.
-5. Do not implement a later increment before the current increment has been reviewed and approved.
-6. When requirements or design decisions are unclear, identify the ambiguity instead of assuming a solution.
-7. Keep changes focused on the requested scope.
-8. Do not introduce additional frameworks, libraries, patterns, or infrastructure unless explicitly requested or justified against the project documentation.
-9. After making changes:
-   - compile the project;
-   - run the relevant tests;
-   - report the files created or modified;
-   - report any unresolved issues or assumptions.
-10. Never claim that the implementation works unless it has been verified by compilation and/or the relevant tests.
+2. At the start of each task, inspect the current repository state and read the relevant Markdown files. Treat only decisions marked approved there as requirements; keep proposals and unresolved questions clearly pending until the developer approves them in the Markdown files.
+3. Respect the architecture, technologies, conventions, and restrictions defined in `docs/lineamientos.md` and the active increment in `docs/mvp1.md`.
+4. Work incrementally according to `docs/mvp1.md`; do not implement a later increment before review and approval.
+5. If a real ambiguity or contradiction remains, ask a focused question before making a consequential assumption. Do not reopen decisions already recorded as approved.
+6. Keep changes focused on the current request. After a review or clarification updates the Markdown files, a short request to review the updated documentation and continue the current increment is sufficient; do not require the developer to maintain or repeat a separate long prompt for each cycle.
+7. Do not introduce additional frameworks, libraries, patterns, or infrastructure unless explicitly requested or justified against the project documentation.
+8. After implementation work, compile and run relevant tests, report changed files, and identify unresolved issues. Never claim code works unless verified. Follow any narrower instruction for the current task (for example, documentation-only work).
 
 ## Communication
 

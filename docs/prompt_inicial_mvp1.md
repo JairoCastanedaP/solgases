@@ -2,7 +2,11 @@
 
 ## Objetivo
 
-Este archivo contiene el prompt inicial para comenzar el desarrollo del MVP 1 de SOLGASES APP utilizando Claude Code.
+Este archivo conserva el contexto y el prompt inicial para comenzar el MVP 1 de SOLGASES APP utilizando Claude Code. Es una referencia para la primera interacción, no una plantilla que deba repetirse en cada ciclo.
+
+## Ciclos posteriores
+
+Después de la revisión inicial, el desarrollador puede aclarar o aprobar decisiones directamente en los archivos Markdown pertinentes. En cada ciclo Claude Code debe volver a leer `CLAUDE.md` y la documentación relevante, considerar esas aclaraciones como fuente de verdad y continuar el incremento activo ante una solicitud breve de revisión. No es necesario mantener ni pegar un prompt largo separado por ciclo. Si queda una contradicción real, debe señalarse y solicitar una aclaración concreta antes de asumir.
 
 El propósito de esta primera interacción NO es implementar todo el MVP 1.
 

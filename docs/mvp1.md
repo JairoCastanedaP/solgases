@@ -125,13 +125,13 @@ Se deberá contemplar la administración básica de usuarios internos:
 - Activar/desactivar.
 - Asociar roles.
 
-Los campos definitivos del usuario y la política de autenticación deben ser definidos antes de implementar una solución de seguridad definitiva.
+Los campos de User para este incremento están definidos en las decisiones aprobadas del Incremento 5. La política de autenticación debe definirse antes de implementar una solución de seguridad definitiva. El cambio de contraseña queda aplazado. Hasta contar con autenticación/autorización, el uso es local de desarrollo.
 
 ### 4.7 Roles y permisos
 
-Se deberá preparar el modelo para administrar roles y permisos.
+Se deberá preparar el modelo para administrar roles y permisos. Las decisiones aprobadas del Incremento 5 se detallan en su sección y prevalecen sobre esta descripción general.
 
-La granularidad exacta de los permisos queda pendiente de validación.
+La granularidad de los permisos se definirá conforme a las operaciones aprobadas; las decisiones del Incremento 5 sobre claves internas, códigos editables, carga inicial idempotente y roles sin permisos están aprobadas y no quedan pendientes.
 
 ---
 
@@ -481,16 +481,97 @@ Revisar especialmente las reglas de inventario y transacciones.
 
 ## Incremento 5 — User / Role / Permission
 
-Implementar:
+Implementar gestión administrativa de:
 
 - User.
 - Role.
 - Permission.
-- Relaciones.
-- Operaciones administrativas necesarias.
+- Relaciones entre usuarios, roles y permisos.
+- Operaciones administrativas necesarias dentro del alcance acordado.
 - Pruebas.
 
-La estrategia definitiva de autenticación y autorización deberá ser decidida antes de implementar seguridad completa.
+### Decisiones aprobadas para el Incremento 5
+
+- Cada Role y Permission tendrá una clave interna estable e inmutable, independiente de sus valores editables. Los nombres de roles y los códigos de permisos podrán cambiar sin cambiar esa clave interna ni romper las relaciones.
+- La carga inicial de roles y permisos será idempotente: repetirla no deberá duplicar registros ni sobrescribir cambios editables existentes.
+- La preparación de esquema (tablas, columnas y relaciones) es distinta de la migración o conservación de datos. En desarrollo, los registros actuales pueden restablecerse y recrearse cuando sea necesario; no se requiere un plan de migración de esos datos de desarrollo.
+- Antes de contar con autenticación y autorización, el uso queda limitado al entorno local de desarrollo. No se añadirá un guard basado en perfil técnico para simular o restringir ese alcance.
+- El cambio de contraseña queda aplazado.
+- No se implementará todavía una auditoría administrativa general. La trazabilidad propia de movimientos de inventario sigue sujeta a las reglas del incremento de inventario.
+- Un Role puede existir sin permisos asociados.
+- User tendrá `username` único, un nombre para mostrar y estado activo/inactivo. No almacenará contraseña ni ninguna otra credencial en este incremento.
+- Un usuario podrá tener varios roles (relación User–Role N:M).
+- `InventoryMovement.responsibleUser` se mantiene tal como está; no se modifica ni se relaciona con User en este incremento.
+- User, Role y Permission tendrán `createdAt` y `updatedAt` técnicos (mismo patrón que Inventory: `@PrePersist`/`@PreUpdate`, sin Spring Data JPA Auditing), sin que esto implique auditoría administrativa general.
+- Todo User nuevo nace con `active = true`; el cliente no puede establecerlo en el `POST`.
+- `Role.name` y `Permission.code` serán únicos, aunque siguen siendo editables (distintos de la clave interna `key`).
+- El cliente proporciona `key` al crear Role/Permission; `key` no podrá cambiar en la actualización.
+- La carga inicial asigna el conjunto de permisos de un Role únicamente en el momento en que ese Role se crea por primera vez. Si el Role ya existe (encontrado por su `key`), el seeder no modifica sus asociaciones existentes, aunque no coincidan con la lista semilla.
+- Las consultas de User con roles y permisos anidados se resuelven dentro de una misma transacción de lectura, con una cantidad fija de consultas (no proporcional a la cantidad de usuarios, roles o permisos), evitando N+1.
+- `updatedAt` se actualiza también cuando cambian las relaciones de User (roles asignados) o de Role (permisos asignados), no solo cuando cambian sus campos propios.
+- No habrá `DELETE` para User, Role ni Permission en este incremento.
+
+La implementación de autenticación/autorización completa queda fuera de este incremento hasta contar con una decisión aprobada específica. No convertir el límite de uso local en una protección de seguridad para entornos desplegados.
+
+### Diseño técnico documentado para ejecución posterior
+
+Este diseño queda preparado para revisión y ejecución posterior. Su documentación no autoriza por sí sola la implementación; esta comenzará únicamente cuando el responsable la solicite explícitamente. No se ha implementado todavía.
+
+**Entidades**
+
+- `User`: `id`, `username` (único, `NOT NULL`), `displayName`, `active` (nace en `true`, el cliente no puede fijarlo en el `POST`), `createdAt`/`updatedAt`. Sin campo de contraseña.
+- `Role`: `id`, `key` (único, inmutable, provisto por el cliente al crear, no editable después), `name` (único, editable), `createdAt`/`updatedAt`. Sin `active`.
+- `Permission`: `id`, `key` (único, inmutable, provisto por el cliente al crear), `code` (único, editable), `createdAt`/`updatedAt`. Sin `active`.
+- `User ↔ Role` y `Role ↔ Permission`: ambas `@ManyToMany` unidireccionales y `LAZY`, con tabla intermedia (`tbl_user_role`, `tbl_role_permission`), sin entidad intermedia propia y sin relación de vuelta.
+
+**DTOs**
+
+- `UserRequest` (única forma para crear y actualizar, como en Category/Product): `username`, `displayName`, `roleIds`.
+- `RoleCreateRequest(key, name, permissionIds)` / `RoleUpdateRequest(name, permissionIds)` — `key` solo se acepta al crear.
+- `PermissionCreateRequest(key, code)` / `PermissionUpdateRequest(code)` — misma razón.
+- `UserResponse`, `RoleResponse`, `PermissionResponse`, sin exponer entidades JPA.
+
+**Endpoints** (sin `/v1`, sin paginación, `ProblemDetail` reutilizando `ResourceNotFoundException`/`ResourceConflictException`):
+
+```
+POST/GET/GET{id}/PUT   /api/users            + PATCH activate/deactivate
+POST/GET/GET{id}/PUT   /api/roles
+POST/GET/GET{id}/PUT   /api/permissions
+```
+
+Sin `DELETE` en ninguno. Sin activar/desactivar en Role/Permission (aplazado). `PUT` nunca modifica `active` de `User` ni `key` de `Role`/`Permission`.
+
+**Unicidad:** `username`, `Role.key`, `Role.name`, `Permission.key`, `Permission.code`, todas respaldadas por restricción de base de datos además de verificación previa en el service (mismo patrón `saveAndFlush` + captura de `DataIntegrityViolationException` → 409 ya usado en Category/Product/UnitOfMeasure).
+
+**Carga inicial idempotente:** un componente en `config/` (`ApplicationRunner`), que por cada rol/permiso verifica `existsByKey` antes de insertar. El conjunto de permisos de un Role se asigna únicamente en el instante en que ese Role se crea por primera vez; si el Role ya existe, el seeder no toca sus asociaciones existentes, aunque difieran de la lista semilla. El contenido concreto del catálogo (qué roles, qué permisos, qué asignación inicial) queda pendiente — ver la tabla de aclaraciones.
+
+**N+1 en `UserResponse` con roles y permisos anidados:** dentro de una misma transacción de lectura, en una cantidad fija de consultas: (1) `SELECT u FROM User u LEFT JOIN FETCH u.roles ...`; (2) `SELECT r FROM Role r LEFT JOIN FETCH r.permissions WHERE r.id IN (:idsDeRolesDelPaso1)`. Por la identidad de sesión de Hibernate, los objetos `Role` de la consulta 1 quedan completados con sus permisos tras la consulta 2, sin necesidad de una tercera consulta por rol ni por usuario.
+
+**`updatedAt` ante cambios de relación:** un cambio solo en la tabla intermedia no dispara `@PreUpdate` sobre la fila propia de `User`/`Role` (Hibernate no emite `UPDATE` sobre esa fila si ningún campo propio cambió). Para cumplir la decisión aprobada, los métodos que reemplazan el conjunto de roles/permisos deben fijar `updatedAt` explícitamente solo si el conjunto realmente cambia. Si el PUT envía las mismas relaciones, no se modifica `updatedAt`.
+
+El método deberá comparar las claves de las relaciones actuales y recibidas antes de actualizar, por ejemplo:
+
+```java
+public void replaceRoles(Set<Role> newRoles) {
+    if (sameRoleIds(this.roles, newRoles)) {
+        return;
+    }
+    this.roles.clear();
+    this.roles.addAll(newRoles);
+    this.updatedAt = Instant.now();
+}
+```
+
+Análogo en `Role.replacePermissions(...)`. Las operaciones idempotentes de activar/desactivar `User` tampoco modificarán `updatedAt` si el usuario ya tiene el estado solicitado.
+
+**Pruebas previstas:** validación de DTOs; service (Mockito) cubriendo unicidad de `key`/`name`/`code`/`username`, referencias inexistentes (404), conjuntos vacíos de roles/permisos, que `key`/`active` no cambien vía `PUT`, que `updatedAt` cambie cuando realmente cambian campos o relaciones y permanezca igual en operaciones sin cambios; controller (`MockMvc` standalone) para códigos HTTP y `ProblemDetail`; verificación manual contra Docker para el esquema, las FKs de las tablas intermedias y que la carga semilla no duplique al reiniciar la aplicación dos veces.
+
+### Aclaraciones y propuestas pendientes de aprobación
+
+| Tema | Estado / impacto |
+|---|---|
+| Estado activo/inactivo de Role y Permission | Aplazado explícitamente; no se implementa en este incremento. |
+| Contenido del catálogo semilla (roles y permisos concretos) | El mecanismo idempotente de carga (por clave interna) está aprobado y se diseña en este incremento; el contenido real (qué roles y qué permisos existen) sigue pendiente y no debe inventarse. Se necesita del responsable: la lista de roles con su clave interna y nombre, la lista de permisos con su clave interna y código, y la asignación inicial de permisos a cada rol. |
 
 ### Checkpoint 5
 
@@ -542,7 +623,6 @@ No se deberá declarar el MVP terminado basándose únicamente en que el código
 
 Antes o durante la implementación deberán identificarse explícitamente:
 
-- Campos definitivos de User.
 - Campos definitivos de Product.
 - Categorías iniciales.
 - Unidades de medida.
@@ -553,14 +633,14 @@ Antes o durante la implementación deberán identificarse explícitamente:
 - Política de precios.
 - Autenticación.
 - Autorización.
-- Granularidad de permisos.
+- Detalle adicional de la granularidad de permisos, si resulta necesario para las operaciones aprobadas.
 - Formato estándar de errores.
 - Convenciones REST.
-- Migraciones de base de datos.
-- Auditoría.
+- Estrategia general de migraciones de esquema, independiente del restablecimiento de datos de desarrollo.
+- Auditoría administrativa general para incrementos posteriores; no incluida en el Incremento 5.
 - Estrategia transaccional.
 
-Una decisión pendiente no deberá convertirse en requisito por iniciativa de Claude Code.
+Una decisión pendiente no deberá convertirse en requisito por iniciativa de Claude Code. Las decisiones aprobadas para el Incremento 5 en esta sección no deben volver a tratarse como pendientes.
 
 ---
 

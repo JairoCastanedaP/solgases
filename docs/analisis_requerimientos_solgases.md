@@ -64,9 +64,9 @@ Como mínimo deberá contemplarse:
 - Consultar usuario.
 - Actualizar usuario.
 - Activar/desactivar usuario.
-- Asociar usuario a uno o más roles, si esta decisión se confirma.
+- Asociar User a varios roles (relación N:M), según la decisión aprobada para el Incremento 5.
 
-**Decisiones pendientes:** campos obligatorios del usuario, política de contraseñas, autenticación y si un usuario puede tener múltiples roles.
+Para el Incremento 5, User tendrá `username` único, nombre para mostrar y estado activo/inactivo; los usuarios nuevos estarán activos. User no almacenará contraseña ni otras credenciales en este incremento. El cambio de contraseña queda aplazado. Los campos de User y la relación N:M con Role están aprobados; no deben tratarse como decisiones pendientes.
 
 ### RF-02 — Gestión de roles y permisos
 
@@ -78,7 +78,7 @@ Se recomienda separar conceptualmente:
 - Rol.
 - Permiso.
 
-La granularidad definitiva de permisos queda pendiente de definición.
+La granularidad adicional de permisos que exceda las operaciones aprobadas queda pendiente de definición. Para el Incremento 5, los códigos de permisos son editables, sus claves internas son estables, la carga inicial es idempotente y un rol puede tener cero permisos; consultar `mvp1.md` para las decisiones aprobadas completas.
 
 ### RF-03 — Gestión de categorías
 
@@ -352,13 +352,13 @@ Documentar convenciones para:
 - versionado de API.
 - formato de errores.
 
-### 11.3 Definir estrategia de migraciones de base de datos
+### 11.3 Definir estrategia general de migraciones de esquema
 
-Se recomienda incorporar una herramienta de migraciones, por ejemplo Flyway, pero esta decisión debe aprobarse porque `lineamientos.md` indica que no se deben introducir frameworks adicionales salvo solicitud expresa. Por tanto, no debe agregarse automáticamente.
+Sigue pendiente decidir si se requiere una estrategia general de migraciones de esquema y qué herramienta usar, respetando la regla de no incorporar frameworks adicionales sin aprobación. Esta decisión es independiente de los datos de desarrollo: para el Incremento 5 se aprobó que dichos registros pueden restablecerse y recrearse, por lo que no se requiere un plan para migrarlos o conservarlos.
 
 ### 11.4 Definir auditoría
 
-Para inventario resulta recomendable establecer quién creó/modificó registros y cuándo. Para movimientos de inventario, la trazabilidad debería ser obligatoria.
+No se implementará auditoría administrativa general en el Incremento 5 (historial de cambios administrativos y atribución de quién modificó qué). User, Role y Permission sí tendrán timestamps técnicos básicos (`createdAt` / `updatedAt`), sin Spring Data JPA Auditing. `updatedAt` cambiará cuando cambien campos o relaciones; una operación repetida sin cambios no lo actualizará. La trazabilidad de movimientos de inventario corresponde a su alcance funcional y no implica habilitar ahora una auditoría general para todas las entidades.
 
 ### 11.5 Definir transacciones
 
@@ -366,7 +366,7 @@ Documentar cuándo una operación de negocio debe ejecutarse dentro de una trans
 
 ### 11.6 Definir seguridad
 
-El documento actual define usuarios y roles como necesidad funcional, pero todavía no especifica el mecanismo de autenticación/autorización. Antes de implementar seguridad se debería decidir el mecanismo, gestión de credenciales, expiración de sesiones/tokens y permisos.
+El Incremento 5 cubre la gestión administrativa de User, Role y Permission según `mvp1.md`, pero no la autenticación/autorización completa. Hasta que esta se defina y apruebe, el uso es local de desarrollo; no se añadirá un guard de perfil técnico como sustituto. El cambio de contraseña queda aplazado. Las claves internas estables de roles y permisos son independientes de los nombres de roles y códigos de permisos editables; la carga inicial debe ser idempotente y un rol puede tener cero permisos. Los campos y la cardinalidad User–Role ya están aprobados y se describen en la sección RF-01.
 
 ### 11.7 Revisar la versión de Java
 

@@ -424,6 +424,8 @@ User → Role → Permission
 
 y finalmente integrar autorización sobre las operaciones.
 
+La autorización completa queda para una etapa posterior a la gestión administrativa User / Role / Permission y requiere una decisión específica. Hasta entonces el Incremento 5 se usa únicamente en local; no se simula esa limitación con un guard basado en perfil técnico. Consulta `mvp1.md` para las decisiones aprobadas del Incremento 5.
+
 ## 2. Mantener el dominio preparado para crecer
 
 No introducir todavía entidades de chatbot, WhatsApp o recomendaciones en el MVP 1 solo porque aparecen en el alcance futuro.
@@ -436,9 +438,9 @@ El inventario representa cuántas unidades existen y cómo han cambiado las exis
 
 Esta separación facilitará la evolución posterior.
 
-## 4. Diseñar pensando en auditoría
+## 4. Diseñar pensando en trazabilidad de inventario
 
-Los movimientos de inventario deberían ser trazables.
+Los movimientos de inventario deben conservar la trazabilidad definida para ese incremento. Esto no implica implementar una auditoría administrativa general en el Incremento 5.
 
 ## 5. Mantener el backend independiente del frontend
 
@@ -484,9 +486,9 @@ Como evolución de `lineamientos.md`, sería conveniente definir posteriormente:
 - estándar de errores REST;
 - convenciones de nombres de endpoints;
 - paginación y filtrado;
-- estrategia de migraciones de base de datos;
+- estrategia general de migraciones de esquema (distinta de restablecer datos de desarrollo);
 - estrategia de autenticación/autorización;
-- auditoría;
+- auditoría administrativa general (no incluida en el Incremento 5; conservar la trazabilidad requerida para inventario);
 - transacciones;
 - versionado de API;
 - estándares de calidad y análisis estático.
