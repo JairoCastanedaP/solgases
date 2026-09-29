@@ -8,6 +8,7 @@ import com.solgases.application.exception.DuplicateProductSkuException;
 import com.solgases.application.exception.ProductNotFoundException;
 import com.solgases.application.exception.InventoryMovementNotFoundException;
 import com.solgases.application.exception.ConflictException;
+import com.solgases.application.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
@@ -28,6 +29,11 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ProblemDetail handleResourceNotFound(ResourceNotFoundException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
 
     @ExceptionHandler(CategoryNotFoundException.class)
     public ProblemDetail handleCategoryNotFound(CategoryNotFoundException ex) {

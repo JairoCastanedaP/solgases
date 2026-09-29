@@ -32,24 +32,15 @@ Construir la primera versión funcional del backend de SOLGASES, proporcionando 
 
 ### 2. Arquitectura
 
-Organización por feature y capas internas:
+Clean Architecture en tres módulos Maven, de acuerdo con `docs/lineamientos.md` y el modelo F2/02 del curso:
 
 ```text
-src/main/java
-└── com.solgases
-    ├── user
-    │   ├── controller
-    │   ├── service
-    │   ├── repository
-    │   ├── entity
-    │   └── dto
-    ├── role
-    ├── product
-    ├── category
-    └── inventory
+domain/          # Modelos y reglas de negocio sin dependencias de frameworks
+application/     # Casos de uso, puertos, DTOs de aplicación y excepciones
+infrastructure/  # Adaptadores REST y de persistencia, mappers y configuración Spring
 ```
 
-La estructura debe ajustarse a los nombres definitivos del proyecto.
+Las dependencias apuntan hacia el dominio: `infrastructure → application → domain`. Los controladores REST llaman puertos de entrada de la aplicación; los adaptadores de persistencia implementan sus puertos de salida. La estructura interna se rige por `docs/lineamientos.md`.
 
 ### 3. Usuarios
 
@@ -110,7 +101,7 @@ La estructura debe ajustarse a los nombres definitivos del proyecto.
 
 ### 10. Pruebas
 
-- Pruebas unitarias de servicios.
+- Pruebas unitarias de casos de uso.
 - Pruebas de validaciones.
 - Pruebas de reglas críticas de inventario.
 - Pruebas de integración solo donde sean necesarias.
@@ -232,17 +223,16 @@ El sistema debería presentar alternativas existentes y disponibles según la in
 
 Mantener el chatbot desacoplado del dominio principal de inventario.
 
-Una posible separación futura:
+Una posible separación futura, respetando los módulos y límites de dependencias del proyecto:
 
 ```text
-chatbot
-├── controller
-├── service
-├── dto
-└── integration
+application/
+└── casos de uso y puertos
+infrastructure/
+└── adaptador de integración con IA
 ```
 
-El módulo de IA debería consultar información mediante servicios controlados, en lugar de acceder directamente a las entidades JPA.
+El adaptador de IA debería consultar información mediante puertos y casos de uso controlados, en lugar de acceder directamente a las entidades JPA. Su ubicación definitiva se definirá al aprobar ese MVP.
 
 ## No incluye
 

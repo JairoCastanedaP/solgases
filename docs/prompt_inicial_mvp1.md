@@ -78,9 +78,9 @@ No asumas que el repositorio está vacío.
 En esta primera interacción NO debes:
 
 - Crear entidades.
-- Crear controllers.
-- Crear services.
-- Crear repositories.
+- Crear controladores REST.
+- Crear casos de uso.
+- Crear adaptadores de persistencia o repositorios Spring Data.
 - Modificar el modelo de datos.
 - Implementar CRUD.
 - Implementar autenticación.
@@ -91,14 +91,16 @@ Primero quiero revisar tu análisis.
 
 ## 5. Analiza la arquitectura
 
+La arquitectura aprobada para SOLGASES es Clean Architecture en los módulos Maven `domain`, `application` e `infrastructure`, descrita en `docs/lineamientos.md` y basada en el modelo F2/02 del curso. No la sustituyas por una organización alternativa por paquetes de feature.
+
 Con base en los documentos y el repositorio, analiza:
 
 - Arquitectura propuesta.
-- Organización por features.
+- Responsabilidades de los tres módulos y límites entre ellos.
 - Módulos iniciales.
 - Entidades conceptuales.
 - Relaciones principales.
-- Capas necesarias.
+- Puertos y adaptadores necesarios.
 - Dependencias.
 - Riesgos técnicos.
 - Decisiones que todavía requieren definición.

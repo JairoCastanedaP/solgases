@@ -527,7 +527,7 @@ Este diseño queda preparado para revisión y ejecución posterior. Su documenta
 - `PermissionCreateRequest(key, code)` / `PermissionUpdateRequest(code)` — misma razón.
 - `UserResponse`, `RoleResponse`, `PermissionResponse`, sin exponer entidades JPA.
 
-**Endpoints** (sin `/v1`, sin paginación, `ProblemDetail` reutilizando `ResourceNotFoundException`/`ResourceConflictException`):
+**Endpoints** (sin `/v1`, sin paginación, respuestas `ProblemDetail`; `ResourceNotFoundException` está en `application.exception` y se traduce a HTTP 404 en infraestructura. Los conflictos usan `ConflictException` y se traducen a HTTP 409):
 
 ```
 POST/GET/GET{id}/PUT   /api/users            + PATCH activate/deactivate
@@ -537,9 +537,9 @@ POST/GET/GET{id}/PUT   /api/permissions
 
 Sin `DELETE` en ninguno. Sin activar/desactivar en Role/Permission (aplazado). `PUT` nunca modifica `active` de `User` ni `key` de `Role`/`Permission`.
 
-**Unicidad:** `username`, `Role.key`, `Role.name`, `Permission.key`, `Permission.code`, todas respaldadas por restricción de base de datos además de verificación previa en el service (mismo patrón `saveAndFlush` + captura de `DataIntegrityViolationException` → 409 ya usado en Category/Product/UnitOfMeasure).
+**Unicidad:** `username`, `Role.key`, `Role.name`, `Permission.key`, `Permission.code`, todas respaldadas por restricción de base de datos además de verificación previa en los casos de uso o adaptadores de persistencia, según la responsabilidad. Se conserva el patrón `saveAndFlush` + captura de `DataIntegrityViolationException` → 409 ya usado en Category/Product/UnitOfMeasure.
 
-**Carga inicial idempotente:** un componente en `config/` (`ApplicationRunner`), que por cada rol/permiso verifica `existsByKey` antes de insertar. El conjunto de permisos de un Role se asigna únicamente en el instante en que ese Role se crea por primera vez; si el Role ya existe, el seeder no toca sus asociaciones existentes, aunque difieran de la lista semilla. El contenido concreto del catálogo (qué roles, qué permisos, qué asignación inicial) queda pendiente — ver la tabla de aclaraciones.
+**Carga inicial idempotente:** un componente en `infrastructure/config` (`ApplicationRunner`), que por cada rol/permiso verifica `existsByKey` antes de insertar. El conjunto de permisos de un Role se asigna únicamente en el instante en que ese Role se crea por primera vez; si el Role ya existe, el seeder no toca sus asociaciones existentes, aunque difieran de la lista semilla. El contenido concreto del catálogo (qué roles, qué permisos, qué asignación inicial) queda pendiente — ver la tabla de aclaraciones.
 
 **N+1 en `UserResponse` con roles y permisos anidados:** dentro de una misma transacción de lectura, en una cantidad fija de consultas: (1) `SELECT u FROM User u LEFT JOIN FETCH u.roles ...`; (2) `SELECT r FROM Role r LEFT JOIN FETCH r.permissions WHERE r.id IN (:idsDeRolesDelPaso1)`. Por la identidad de sesión de Hibernate, los objetos `Role` de la consulta 1 quedan completados con sus permisos tras la consulta 2, sin necesidad de una tercera consulta por rol ni por usuario.
 
@@ -560,7 +560,7 @@ public void replaceRoles(Set<Role> newRoles) {
 
 Análogo en `Role.replacePermissions(...)`. Las operaciones idempotentes de activar/desactivar `User` tampoco modificarán `updatedAt` si el usuario ya tiene el estado solicitado.
 
-**Pruebas previstas:** validación de DTOs; service (Mockito) cubriendo unicidad de `key`/`name`/`code`/`username`, referencias inexistentes (404), conjuntos vacíos de roles/permisos, que `key`/`active` no cambien vía `PUT`, que `updatedAt` cambie cuando realmente cambian campos o relaciones y permanezca igual en operaciones sin cambios; controller (`MockMvc` standalone) para códigos HTTP y `ProblemDetail`; verificación manual contra Docker para el esquema, las FKs de las tablas intermedias y que la carga semilla no duplique al reiniciar la aplicación dos veces.
+**Pruebas previstas:** validación de DTOs; pruebas unitarias de casos de uso (Mockito) y adaptadores para unicidad de `key`/`name`/`code`/`username`, referencias inexistentes (404), conjuntos vacíos de roles/permisos, que `key`/`active` no cambien vía `PUT`, que `updatedAt` cambie cuando realmente cambian campos o relaciones y permanezca igual en operaciones sin cambios; pruebas de controladores REST (`MockMvc` standalone) para códigos HTTP y `ProblemDetail`; verificación manual contra Docker para el esquema, las FKs de las tablas intermedias y que la carga semilla no duplique al reiniciar la aplicación dos veces.
 
 ### Aclaraciones y propuestas pendientes de aprobación
 

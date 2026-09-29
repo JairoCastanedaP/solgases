@@ -107,8 +107,8 @@ infrastructure/api/rest → application input ports
 
 - Use Spring Data JPA for data access.
 - The database is MySQL.
-- Access the database only through repositories.
-- Map entities to DTOs before returning data from the service layer to controllers.
+- Access the database only through Spring Data repositories used by infrastructure persistence adapters.
+- Map between JPA entities and domain models inside persistence mappers; map between application results and HTTP DTOs inside API mappers. Return application DTOs through input ports, never JPA entities through REST controllers.
 
 ## Configuration and Secrets
 

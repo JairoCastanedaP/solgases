@@ -195,7 +195,7 @@ Los siguientes requisitos técnicos se derivan directamente de los lineamientos 
 
 ### RNF-02 — Arquitectura
 
-El proyecto deberá utilizar estructura Maven estándar y organizar los paquetes por funcionalidad, manteniendo dentro de cada feature sus capas de controller, service, repository, entity y dto cuando sean necesarias. fileciteturn0file0L30-L44
+El proyecto deberá utilizar estructura Maven estándar y Clean Architecture en tres módulos: `domain`, `application` e `infrastructure`, de acuerdo con `docs/lineamientos.md` y el modelo F2/02 del curso. El dominio contendrá modelos y reglas de negocio; la aplicación contendrá casos de uso, puertos, DTOs de aplicación y excepciones; infraestructura contendrá adaptadores REST y de persistencia, entidades JPA, mappers y configuración. Las dependencias apuntarán hacia el dominio y las entidades JPA no se expondrán por REST.
 
 ### RNF-03 — Diseño
 
@@ -203,11 +203,11 @@ Se deberán aplicar principios SOLID, mantener clases cohesionadas, evitar abstr
 
 ### RNF-04 — APIs
 
-Los controladores deberán centrarse en aspectos HTTP y la lógica de negocio deberá permanecer en la capa de servicio. Las solicitudes deberán validarse mediante Bean Validation. fileciteturn0file0L68-L75
+Los controladores REST deberán centrarse en aspectos HTTP y delegar en los puertos de entrada de la aplicación. La lógica de negocio deberá permanecer en los casos de uso y el dominio. Las solicitudes deberán validarse mediante Bean Validation. fileciteturn0file0L68-L75
 
 ### RNF-05 — Persistencia
 
-El acceso a MySQL deberá realizarse mediante Spring Data JPA y repositories. Las entidades de persistencia no deberán exponerse directamente por REST; se deberán utilizar DTOs. fileciteturn0file0L77-L82
+El acceso a MySQL deberá realizarse mediante adaptadores de persistencia de infraestructura y repositorios Spring Data JPA. Las entidades de persistencia no deberán exponerse directamente por REST; se deberán mapear a modelos de dominio o DTOs según el límite correspondiente. fileciteturn0file0L77-L82
 
 ### RNF-06 — Configuración
 
