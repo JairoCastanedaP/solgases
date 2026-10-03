@@ -5,8 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.solgases.infrastructure.persistence.repository.CategoryJpaRepository;
 import com.solgases.infrastructure.persistence.repository.InventoryMovementJpaRepository;
 import com.solgases.infrastructure.persistence.repository.InventoryJpaRepository;
+import com.solgases.infrastructure.persistence.repository.PermissionJpaRepository;
 import com.solgases.infrastructure.persistence.repository.ProductJpaRepository;
+import com.solgases.infrastructure.persistence.repository.RoleJpaRepository;
 import com.solgases.infrastructure.persistence.repository.UnitOfMeasureJpaRepository;
+import com.solgases.infrastructure.persistence.repository.UserJpaRepository;
 import com.solgases.infrastructure.SolgasesApplication;
 import io.swagger.v3.oas.models.OpenAPI;
 import jakarta.persistence.EntityManager;
@@ -44,6 +47,15 @@ class SolgasesApplicationTests {
 
     @MockitoBean
     private InventoryMovementJpaRepository inventoryMovementRepository;
+
+    @MockitoBean
+    private UserJpaRepository userRepository;
+
+    @MockitoBean
+    private RoleJpaRepository roleRepository;
+
+    @MockitoBean
+    private PermissionJpaRepository permissionRepository;
 
     @MockitoBean
     private EntityManager entityManager;

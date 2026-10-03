@@ -486,6 +486,12 @@ Implementar gestión administrativa de:
 - Operaciones administrativas necesarias dentro del alcance acordado.
 - Pruebas.
 
+### Estado y autorización del Incremento 5
+
+El Incremento 5 está aprobado para implementación conforme a esta sección. Claude Code debe inspeccionar el estado actual del repositorio, leer esta documentación y continuar con la implementación cuando el responsable indique “revisar, continuar e implementar”. No debe solicitar una nueva aprobación para decisiones ya registradas aquí.
+
+La implementación se limita a la gestión administrativa de User / Role / Permission y a sus pruebas. No incluye autenticación, contraseñas, autorización efectiva de endpoints, JWT, refresh tokens, CORS ni auditoría administrativa general. Si una decisión pendiente afecta solo una parte opcional, se implementará el resto del alcance aprobado y se reportará esa parte como pendiente, sin inventar requisitos.
+
 ### Decisiones aprobadas para el Incremento 5
 
 - Cada Role y Permission tendrá una clave interna estable e inmutable, independiente de sus valores editables. Los nombres de roles y los códigos de permisos podrán cambiar sin cambiar esa clave interna ni romper las relaciones.
@@ -509,9 +515,9 @@ Implementar gestión administrativa de:
 
 La implementación de autenticación/autorización completa queda fuera de este incremento hasta contar con una decisión aprobada específica. No convertir el límite de uso local en una protección de seguridad para entornos desplegados.
 
-### Diseño técnico documentado para ejecución posterior
+### Diseño técnico aprobado para implementación
 
-Este diseño queda preparado para revisión y ejecución posterior. Su documentación no autoriza por sí sola la implementación; esta comenzará únicamente cuando el responsable la solicite explícitamente. No se ha implementado todavía.
+Este diseño concreta las decisiones aprobadas para el Incremento 5 y constituye el alcance implementable. Claude Code debe adaptarlo a los patrones reales existentes en el repositorio, manteniendo compatibilidad con las decisiones funcionales de esta sección.
 
 **Entidades**
 
@@ -539,7 +545,7 @@ Sin `DELETE` en ninguno. Sin activar/desactivar en Role/Permission (aplazado). `
 
 **Unicidad:** `username`, `Role.key`, `Role.name`, `Permission.key`, `Permission.code`, todas respaldadas por restricción de base de datos además de verificación previa en los casos de uso o adaptadores de persistencia, según la responsabilidad. Se conserva el patrón `saveAndFlush` + captura de `DataIntegrityViolationException` → 409 ya usado en Category/Product/UnitOfMeasure.
 
-**Carga inicial idempotente:** un componente en `infrastructure/config` (`ApplicationRunner`), que por cada rol/permiso verifica `existsByKey` antes de insertar. El conjunto de permisos de un Role se asigna únicamente en el instante en que ese Role se crea por primera vez; si el Role ya existe, el seeder no toca sus asociaciones existentes, aunque difieran de la lista semilla. El contenido concreto del catálogo (qué roles, qué permisos, qué asignación inicial) queda pendiente — ver la tabla de aclaraciones.
+**Carga inicial idempotente:** el mecanismo de carga se implementa en `infrastructure/config` (por ejemplo, mediante `ApplicationRunner`) y verifica `existsByKey` antes de insertar cada rol o permiso. El conjunto de permisos de un Role se asigna únicamente cuando ese Role se crea por primera vez; si ya existe, la carga no modifica sus asociaciones aunque difieran de la definición inicial. El contenido concreto del catálogo (roles, permisos y asignaciones) sigue pendiente y no debe inventarse. La falta de esos datos no bloquea la gestión CRUD ni las pruebas; la carga no debe crear roles o permisos ficticios. Claude Code reportará que el catálogo real requiere definición antes de poblar datos iniciales.
 
 **N+1 en `UserResponse` con roles y permisos anidados:** dentro de una misma transacción de lectura, en una cantidad fija de consultas: (1) `SELECT u FROM User u LEFT JOIN FETCH u.roles ...`; (2) `SELECT r FROM Role r LEFT JOIN FETCH r.permissions WHERE r.id IN (:idsDeRolesDelPaso1)`. Por la identidad de sesión de Hibernate, los objetos `Role` de la consulta 1 quedan completados con sus permisos tras la consulta 2, sin necesidad de una tercera consulta por rol ni por usuario.
 
@@ -571,7 +577,7 @@ Análogo en `Role.replacePermissions(...)`. Las operaciones idempotentes de acti
 
 ### Checkpoint 5
 
-Revisar el modelo de seguridad.
+Implementar y verificar User / Role / Permission según las decisiones de esta sección. Las pruebas unitarias con JUnit 5 y Mockito deben cubrir primero las reglas de negocio y luego persistencia, validación y API. No iniciar Spring Security ni autorización efectiva; el modelo de seguridad completo queda para un incremento posterior.
 
 ---
 
@@ -646,12 +652,10 @@ Antes de realizar cambios significativos:
 
 1. Inspeccionar el código existente.
 2. Revisar los documentos relevantes.
-3. Explicar los cambios propuestos.
-4. Identificar supuestos.
-5. Identificar decisiones pendientes.
-6. No inventar requisitos.
-7. No implementar funcionalidades fuera del alcance.
-8. Esperar autorización cuando la decisión requiera validación.
+3. Tratar las decisiones aprobadas en este documento como autorización suficiente para implementarlas; no detenerse para volver a presentarlas para aprobación.
+4. Identificar decisiones pendientes y distinguirlas de las aprobadas.
+5. No inventar requisitos ni implementar funcionalidades fuera del alcance.
+6. Si una decisión pendiente bloquea un elemento no esencial, continuar con el resto del alcance y reportar el bloqueo de ese elemento. Solicitar aclaración solo si impide implementar el núcleo aprobado de forma segura o correcta.
 
 Después de realizar cambios:
 

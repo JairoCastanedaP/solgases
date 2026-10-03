@@ -158,6 +158,8 @@ Before making significant changes:
 4. Do not invent requirements.
 5. Implement only the requested scope.
 
+When the developer explicitly delegates implementation of an increment whose scope and decisions are approved in `docs/mvp1.md`, the approved documentation and the request to continue are sufficient authorization. Do not pause to request approval of the same decisions again. Record unresolved decisions, implement the remaining approved scope when possible, and ask only when an unresolved decision blocks the core implementation or could lead to an irreversible or consequential choice. The developer may use ChatGPT for decision-making and documentation while Claude Code implements the documented scope.
+
 After making changes:
 
 1. Compile the project.

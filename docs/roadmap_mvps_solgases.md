@@ -416,6 +416,8 @@ y finalmente integrar autorización sobre las operaciones.
 
 La autorización completa queda para una etapa posterior a la gestión administrativa User / Role / Permission y requiere una decisión específica. Hasta entonces el Incremento 5 se usa únicamente en local; no se simula esa limitación con un guard basado en perfil técnico. Consulta `mvp1.md` para las decisiones aprobadas del Incremento 5.
 
+**Siguiente implementación acordada:** cerrar el Incremento 5 definido en `docs/mvp1.md`: administración persistente de usuarios, roles y permisos, relaciones, carga inicial idempotente sin inventar datos semilla y pruebas automatizadas. La autenticación, autorización efectiva, JWT, refresh tokens, CORS y auditoría administrativa general no forman parte de este incremento. Claude Code debe implementar el alcance documentado después de inspeccionar el repositorio; la indicación breve “revisar, continuar e implementar” es suficiente y no requiere repetir decisiones ya aprobadas.
+
 ## 2. Mantener el dominio preparado para crecer
 
 No introducir todavía entidades de chatbot, WhatsApp o recomendaciones en el MVP 1 solo porque aparecen en el alcance futuro.
