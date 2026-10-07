@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.solgases.application.exception.ConflictException;
 import com.solgases.application.exception.DuplicateUsernameException;
 import com.solgases.domain.model.Role;
 import com.solgases.domain.model.User;
@@ -16,6 +17,7 @@ import com.solgases.infrastructure.persistence.entity.RoleJpaEntity;
 import com.solgases.infrastructure.persistence.entity.UserJpaEntity;
 import com.solgases.infrastructure.persistence.repository.RoleJpaRepository;
 import com.solgases.infrastructure.persistence.repository.UserJpaRepository;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -100,13 +102,42 @@ class UserPersistenceAdapterTest {
     }
 
     @Test
-    void saveNewTranslatesDatabaseUniqueViolationToDuplicateUsername() {
-        when(userRepository.saveAndFlush(any(UserJpaEntity.class)))
-                .thenThrow(new DataIntegrityViolationException("Duplicate entry"));
+    void saveNewTranslatesUsernameUniqueViolationToDuplicateUsername() {
+        when(userRepository.saveAndFlush(any(UserJpaEntity.class))).thenThrow(mysqlViolation(
+                "Duplicate entry 'jdoe' for key 'tbl_user." + UserJpaEntity.UK_USERNAME + "'"));
 
         assertThatThrownBy(() -> adapter.saveNew(User.newUser("jdoe", "John Doe", Set.of())))
                 .isInstanceOf(DuplicateUsernameException.class)
                 .hasMessage("A user with the username 'jdoe' already exists");
+    }
+
+    @Test
+    void saveNewTranslatesOtherIntegrityViolationToGenericConflict() {
+        when(userRepository.saveAndFlush(any(UserJpaEntity.class))).thenThrow(mysqlViolation(
+                "Cannot add or update a child row: a foreign key constraint fails (`solgases`.`tbl_user_role`, "
+                        + "CONSTRAINT `fk_user_role_role` FOREIGN KEY (`role_id`) REFERENCES `tbl_role` (`id`))"));
+
+        assertThatThrownBy(() -> adapter.saveNew(User.newUser("jdoe", "John Doe", Set.of())))
+                .isExactlyInstanceOf(ConflictException.class)
+                .hasMessage("The user conflicts with existing data");
+    }
+
+    @Test
+    void saveChangesDistinguishesUsernameViolationFromOtherIntegrityViolations() {
+        UserJpaEntity entity = user(5L, "jdoe");
+        when(userRepository.findWithRolesById(5L)).thenReturn(Optional.of(entity));
+        when(userRepository.saveAndFlush(entity))
+                .thenThrow(mysqlViolation("Duplicate entry 'jdoe2' for key 'tbl_user." + UserJpaEntity.UK_USERNAME + "'"))
+                .thenThrow(new DataIntegrityViolationException("other"));
+        User changed = new User(5L, "jdoe2", "John Doe", true, Set.of(), null, null);
+
+        assertThatThrownBy(() -> adapter.saveChanges(changed)).isInstanceOf(DuplicateUsernameException.class);
+        assertThatThrownBy(() -> adapter.saveChanges(changed)).isExactlyInstanceOf(ConflictException.class);
+    }
+
+    private static DataIntegrityViolationException mysqlViolation(String message) {
+        return new DataIntegrityViolationException("could not execute statement",
+                new SQLIntegrityConstraintViolationException(message));
     }
 
     @Test

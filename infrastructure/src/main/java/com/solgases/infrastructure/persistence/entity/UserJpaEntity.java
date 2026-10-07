@@ -26,8 +26,10 @@ import java.util.stream.Collectors;
 @Entity
 @Table(
         name = "tbl_user",
-        uniqueConstraints = @UniqueConstraint(name = "uk_user_username", columnNames = "username"))
+        uniqueConstraints = @UniqueConstraint(name = UserJpaEntity.UK_USERNAME, columnNames = "username"))
 public class UserJpaEntity {
+
+    public static final String UK_USERNAME = "uk_user_username";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

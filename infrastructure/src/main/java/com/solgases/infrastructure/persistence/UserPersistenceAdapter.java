@@ -1,5 +1,6 @@
 package com.solgases.infrastructure.persistence;
 
+import com.solgases.application.exception.ConflictException;
 import com.solgases.application.exception.DuplicateUsernameException;
 import com.solgases.application.exception.UserNotFoundException;
 import com.solgases.application.port.out.UserPersistencePort;
@@ -98,7 +99,15 @@ public class UserPersistenceAdapter implements UserPersistencePort {
         try {
             return UserPersistenceMapper.toDomain(userRepository.saveAndFlush(entity));
         } catch (DataIntegrityViolationException ex) {
-            throw new DuplicateUsernameException(entity.getUsername());
+            throw toConflict(ex, entity);
         }
+    }
+
+    private static ConflictException toConflict(DataIntegrityViolationException ex, UserJpaEntity entity) {
+        String cause = String.valueOf(ex.getMostSpecificCause().getMessage()).toLowerCase();
+        if (cause.contains(UserJpaEntity.UK_USERNAME)) {
+            return new DuplicateUsernameException(entity.getUsername());
+        }
+        return new ConflictException("The user conflicts with existing data");
     }
 }

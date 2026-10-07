@@ -579,6 +579,18 @@ Análogo en `Role.replacePermissions(...)`. Las operaciones idempotentes de acti
 
 Implementar y verificar User / Role / Permission según las decisiones de esta sección. Las pruebas unitarias con JUnit 5 y Mockito deben cubrir primero las reglas de negocio y luego persistencia, validación y API. No iniciar Spring Security ni autorización efectiva; el modelo de seguridad completo queda para un incremento posterior.
 
+**Estado: implementado y verificado.**
+
+- **Pruebas automatizadas:** `mvn -B clean verify` finalizó con éxito, con 251 pruebas (65 en `application` y 186 en `infrastructure`) sin fallos ni errores.
+- **Corrección durante el cierre:** `UserPersistenceAdapter` traduce a `DuplicateUsernameException` únicamente la violación de `uk_user_username`; cualquier otra violación de integridad (por ejemplo, una clave foránea de `tbl_user_role`) se traduce a una `ConflictException` genérica, de forma coherente con los adaptadores de Role y Permission. Esta corrección está cubierta por pruebas.
+- **Verificación manual contra MySQL** (servicio aislado `solgases-mysql` de `docker-compose.yml`, perfil `local`, base de datos nueva):
+  - Esquema de `tbl_user`, `tbl_role`, `tbl_permission`, `tbl_user_role` y `tbl_role_permission` conforme al diseño, sin columna de contraseña en `tbl_user`.
+  - Restricciones únicas `uk_user_username`, `uk_role_key`, `uk_role_name`, `uk_permission_key` y `uk_permission_code`, y claves foráneas `fk_user_role_user`, `fk_user_role_role`, `fk_role_permission_role` y `fk_role_permission_permission`. La base de datos rechazó directamente las inserciones duplicadas (error 1062) y las referencias inexistentes (error 1452).
+  - `updatedAt` con Hibernate real: no cambia ante un `PUT` sin cambios de User, Role o Permission, ni al activar un usuario ya activo o desactivar uno ya inactivo; sí cambia ante un cambio real de estado y ante un cambio limitado a las relaciones (roles del usuario).
+  - Códigos HTTP comprobados: 201 en creación, 200 en consultas, `PUT` y `PATCH`, 409 por `username` duplicado y 404 por rol inexistente, con respuestas `ProblemDetail`.
+  - Dos arranques consecutivos de la aplicación no duplicaron registros. Los datos temporales de la verificación se eliminaron al terminar.
+- **Limitación conocida:** el catálogo semilla permanece vacío porque su contenido (roles, permisos y asignación inicial) sigue pendiente de definición por el negocio. Por ello, en MySQL solo se verificó el arranque repetido con catálogo vacío; no se probó la repetición de una carga con catálogo no vacío. La idempotencia de esa carga está cubierta únicamente por pruebas unitarias del caso de uso. No existen roles ni permisos reales cargados.
+
 ---
 
 ## Incremento 6 — Calidad y documentación
