@@ -60,6 +60,8 @@ public class InventoryController {
             description = "Returns 0 if the product has no inventory movement yet; no record is created by this call.")
     @ApiResponse(responseCode = "200", description = "Current stock",
             content = @Content(schema = @Schema(implementation = InventoryResponse.class)))
+    @ApiResponse(responseCode = "400", description = "The product id is not a valid number",
+            content = @Content(mediaType = PROBLEM_JSON, schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "404", description = "Product not found",
             content = @Content(mediaType = PROBLEM_JSON, schema = @Schema(implementation = ProblemDetail.class)))
     public InventoryResponse getCurrentQuantity(
@@ -73,6 +75,8 @@ public class InventoryController {
             description = "Returns every movement registered for the product, most recent first.")
     @ApiResponse(responseCode = "200", description = "List of movements",
             content = @Content(array = @ArraySchema(schema = @Schema(implementation = InventoryMovementResponse.class))))
+    @ApiResponse(responseCode = "400", description = "The product id is not a valid number",
+            content = @Content(mediaType = PROBLEM_JSON, schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "404", description = "Product not found",
             content = @Content(mediaType = PROBLEM_JSON, schema = @Schema(implementation = ProblemDetail.class)))
     public List<InventoryMovementResponse> getMovements(
@@ -84,6 +88,8 @@ public class InventoryController {
     @Operation(summary = "Get a single inventory movement of a product")
     @ApiResponse(responseCode = "200", description = "Movement found",
             content = @Content(schema = @Schema(implementation = InventoryMovementResponse.class)))
+    @ApiResponse(responseCode = "400", description = "The product id or movement id is not a valid number",
+            content = @Content(mediaType = PROBLEM_JSON, schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "404", description = "Product or movement not found",
             content = @Content(mediaType = PROBLEM_JSON, schema = @Schema(implementation = ProblemDetail.class)))
     public InventoryMovementResponse getMovement(

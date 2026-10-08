@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Repository;
 
@@ -65,7 +66,8 @@ public class InventoryPersistenceAdapter implements InventoryPersistencePort {
         inventory.applyQuantity(quantity);
         try {
             return InventoryPersistenceMapper.toDomain(inventoryRepository.saveAndFlush(inventory));
-        } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
+        } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException
+                | PessimisticLockingFailureException ex) {
             throw concurrencyConflict(productId);
         }
     }
@@ -79,7 +81,12 @@ public class InventoryPersistenceAdapter implements InventoryPersistencePort {
             case EXIT -> InventoryMovementJpaEntity.exit(product, quantity, reason, responsibleUser);
             case ADJUSTMENT -> InventoryMovementJpaEntity.adjustment(product, direction, quantity, reason, responsibleUser);
         };
-        return InventoryPersistenceMapper.toDomain(movementRepository.save(movement));
+        try {
+            return InventoryPersistenceMapper.toDomain(movementRepository.save(movement));
+        } catch (PessimisticLockingFailureException ex) {
+            // Lock waits and deadlocks between concurrent movements; connection failures are not translated
+            throw concurrencyConflict(productId);
+        }
     }
 
     private ConflictException concurrencyConflict(Long productId) {

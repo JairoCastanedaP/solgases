@@ -27,7 +27,7 @@ public record InventoryMovementResponse(
         @Schema(description = "Reason for the movement", example = "Compra a proveedor")
         String reason,
 
-        @Schema(description = "Identifier of the person responsible for the movement", example = "jcastaneda")
+        @Schema(description = "Identifier of the person responsible for the movement", example = "jdoe")
         String responsibleUser,
 
         @Schema(description = "Moment the movement took place, assigned by the server")

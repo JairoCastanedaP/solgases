@@ -127,4 +127,47 @@ class InventoryMovementUseCaseTest {
                 new InventoryAdjustmentCommand(BigDecimal.ONE, MovementDirection.INCREASE, "Count", "user")))
                 .isInstanceOf(ConflictException.class).hasMessage("Product with id 1 is not active");
     }
+
+    @Test void entryMayReachExactlyTheMaximumSupportedStock() {
+        when(persistence.findProductById(1L)).thenReturn(Optional.of(product(true)));
+        when(persistence.findByProductId(1L))
+                .thenReturn(Optional.of(Inventory.empty(1L).withQuantity(new BigDecimal("999999999998.999"))));
+        when(persistence.saveMovement(1L, MovementType.ENTRY, MovementDirection.INCREASE, BigDecimal.ONE,
+                "Purchase", "user"))
+                .thenReturn(new InventoryMovement(12L, 1L, MovementType.ENTRY, MovementDirection.INCREASE,
+                        BigDecimal.ONE, "Purchase", "user", Instant.EPOCH));
+
+        new RegisterInventoryEntryService(persistence).execute(1L,
+                new InventoryMovementCommand(BigDecimal.ONE, "Purchase", "user"));
+
+        verify(persistence).saveInventory(1L, Inventory.MAX_QUANTITY);
+    }
+
+    @Test void entryExceedingTheMaximumSupportedStockIsRejectedWithoutWritingAnything() {
+        when(persistence.findProductById(1L)).thenReturn(Optional.of(product(true)));
+        when(persistence.findByProductId(1L))
+                .thenReturn(Optional.of(Inventory.empty(1L).withQuantity(Inventory.MAX_QUANTITY)));
+
+        assertThatThrownBy(() -> new RegisterInventoryEntryService(persistence).execute(1L,
+                new InventoryMovementCommand(new BigDecimal("0.001"), "Purchase", "user")))
+                .isExactlyInstanceOf(ConflictException.class)
+                .hasMessage("Stock for product 1 would exceed the maximum supported quantity 999999999999.999: "
+                        + "available 999999999999.999, requested 0.001")
+                .hasMessageNotContaining("retry");
+        verify(persistence, never()).saveInventory(anyLong(), any());
+        verify(persistence, never()).saveMovement(anyLong(), any(), any(), any(), any(), any());
+    }
+
+    @Test void increaseAdjustmentExceedingTheMaximumSupportedStockIsRejected() {
+        when(persistence.findProductById(1L)).thenReturn(Optional.of(product(true)));
+        when(persistence.findByProductId(1L))
+                .thenReturn(Optional.of(Inventory.empty(1L).withQuantity(new BigDecimal("999999999999"))));
+
+        assertThatThrownBy(() -> new RegisterInventoryAdjustmentService(persistence).execute(1L,
+                new InventoryAdjustmentCommand(BigDecimal.ONE, MovementDirection.INCREASE, "Count", "user")))
+                .isExactlyInstanceOf(ConflictException.class)
+                .hasMessageStartingWith("Stock for product 1 would exceed the maximum supported quantity");
+        verify(persistence, never()).saveInventory(anyLong(), any());
+        verify(persistence, never()).saveMovement(anyLong(), any(), any(), any(), any(), any());
+    }
 }

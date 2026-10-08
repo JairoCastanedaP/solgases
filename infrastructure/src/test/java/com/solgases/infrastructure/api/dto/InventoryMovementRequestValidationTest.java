@@ -34,7 +34,7 @@ class InventoryMovementRequestValidationTest {
 
     @Test
     void validRequestHasNoViolations() {
-        assertThat(validator.validate(request(new BigDecimal("10.000"), "Compra a proveedor", "jcastaneda"))).isEmpty();
+        assertThat(validator.validate(request(new BigDecimal("10.000"), "Compra a proveedor", "jdoe"))).isEmpty();
     }
 
     @Test

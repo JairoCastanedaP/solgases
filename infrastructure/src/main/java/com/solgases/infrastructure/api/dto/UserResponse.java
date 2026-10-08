@@ -10,10 +10,10 @@ public record UserResponse(
         @Schema(description = "Generated identifier", example = "1")
         Long id,
 
-        @Schema(description = "Unique username", example = "jcastaneda")
+        @Schema(description = "Unique username", example = "jdoe")
         String username,
 
-        @Schema(description = "Name shown for the user", example = "Jairo Castañeda")
+        @Schema(description = "Name shown for the user", example = "John Doe")
         String displayName,
 
         @Schema(description = "Whether the user is active", example = "true")

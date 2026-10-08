@@ -25,6 +25,11 @@ final class InventoryMovementRegistration {
             throw new ConflictException("Insufficient stock for product " + productId + ": available "
                     + inventory.currentQuantity() + ", requested " + quantity);
         }
+        if (newQuantity.compareTo(Inventory.MAX_QUANTITY) > 0) {
+            throw new ConflictException("Stock for product " + productId + " would exceed the maximum supported quantity "
+                    + Inventory.MAX_QUANTITY.toPlainString() + ": available " + inventory.currentQuantity()
+                    + ", requested " + quantity);
+        }
         persistence.saveInventory(productId, newQuantity);
         return InventoryMovementResult.from(persistence.saveMovement(
                 productId, type, direction, quantity, reason, responsibleUser));

@@ -32,7 +32,7 @@ class InventoryAdjustmentRequestValidationTest {
     @Test
     void validIncreaseRequestHasNoViolations() {
         InventoryAdjustmentRequest request = new InventoryAdjustmentRequest(
-                new BigDecimal("2.000"), MovementDirection.INCREASE, "Conteo físico", "jcastaneda");
+                new BigDecimal("2.000"), MovementDirection.INCREASE, "Conteo físico", "jdoe");
 
         assertThat(validator.validate(request)).isEmpty();
     }
@@ -40,7 +40,7 @@ class InventoryAdjustmentRequestValidationTest {
     @Test
     void validDecreaseRequestHasNoViolations() {
         InventoryAdjustmentRequest request = new InventoryAdjustmentRequest(
-                new BigDecimal("2.000"), MovementDirection.DECREASE, "Conteo físico", "jcastaneda");
+                new BigDecimal("2.000"), MovementDirection.DECREASE, "Conteo físico", "jdoe");
 
         assertThat(validator.validate(request)).isEmpty();
     }

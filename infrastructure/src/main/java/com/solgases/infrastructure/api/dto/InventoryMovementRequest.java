@@ -25,7 +25,7 @@ public record InventoryMovementRequest(
         @Size(max = 255)
         String reason,
 
-        @Schema(description = "Identifier of the person responsible for the movement", example = "jcastaneda",
+        @Schema(description = "Identifier of the person responsible for the movement", example = "jdoe",
                 requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 255)
         @NotBlank
         @Size(max = 255)

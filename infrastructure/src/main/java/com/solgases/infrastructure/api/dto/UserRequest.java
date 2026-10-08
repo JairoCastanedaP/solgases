@@ -13,13 +13,13 @@ import java.util.Set;
 public record UserRequest(
 
         @Schema(description = "Unique username. Stored exactly as received (no trimming or normalization).",
-                example = "jcastaneda", requiredMode = Schema.RequiredMode.REQUIRED,
+                example = "jdoe", requiredMode = Schema.RequiredMode.REQUIRED,
                 maxLength = User.USERNAME_MAX_LENGTH)
         @NotBlank
         @Size(max = User.USERNAME_MAX_LENGTH)
         String username,
 
-        @Schema(description = "Name shown for the user", example = "Jairo Castañeda",
+        @Schema(description = "Name shown for the user", example = "John Doe",
                 requiredMode = Schema.RequiredMode.REQUIRED, maxLength = User.DISPLAY_NAME_MAX_LENGTH)
         @NotBlank
         @Size(max = User.DISPLAY_NAME_MAX_LENGTH)

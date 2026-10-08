@@ -85,6 +85,8 @@ public class ProductController {
                     + "With no filters, returns every product, active and inactive. No pagination or sorting is applied.")
     @ApiResponse(responseCode = "200", description = "List of products",
             content = @Content(array = @ArraySchema(schema = @Schema(implementation = ProductResponse.class))))
+    @ApiResponse(responseCode = "400", description = "A filter value has an invalid format",
+            content = @Content(mediaType = PROBLEM_JSON, schema = @Schema(implementation = ProblemDetail.class)))
     public List<ProductResponse> findAll(
             @Parameter(description = "Partial, case-insensitive match on the product name") @RequestParam(required = false) String name,
             @Parameter(description = "Filter by category id") @RequestParam(required = false) Long categoryId,

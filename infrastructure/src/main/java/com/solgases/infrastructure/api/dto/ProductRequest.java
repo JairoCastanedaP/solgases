@@ -13,7 +13,8 @@ import java.math.BigDecimal;
         + "Category and unit of measure are referenced by id.")
 public record ProductRequest(
 
-        @Schema(description = "Business identifier. Stored exactly as received (no trimming or normalization). Must be unique.",
+        @Schema(description = "Business identifier. Stored exactly as received (no trimming or normalization). "
+                + "Must be unique; uniqueness ignores case and accents.",
                 example = "EPP-CASCO-001", requiredMode = Schema.RequiredMode.REQUIRED, maxLength = Product.SKU_MAX_LENGTH)
         @NotBlank
         @Size(max = Product.SKU_MAX_LENGTH)

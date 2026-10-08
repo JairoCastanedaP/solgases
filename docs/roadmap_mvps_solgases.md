@@ -149,6 +149,7 @@ Construir una interfaz web para que los usuarios internos utilicen el backend de
 - MVP 1 terminado.
 - APIs REST estables.
 - Definición definitiva de roles y permisos.
+- Autenticación y autorización del Incremento 7 antes de exponer el frontend fuera de desarrollo local.
 
 ## No incluye
 
@@ -417,6 +418,26 @@ y finalmente integrar autorización sobre las operaciones.
 La autorización completa queda para una etapa posterior a la gestión administrativa User / Role / Permission y requiere una decisión específica. Hasta entonces el Incremento 5 se usa únicamente en local; no se simula esa limitación con un guard basado en perfil técnico. Consulta `mvp1.md` para las decisiones aprobadas del Incremento 5.
 
 **Estado del Incremento 5: implementado y verificado (Checkpoint 5).** Administración persistente de usuarios, roles y permisos, sus relaciones, carga inicial idempotente sin datos semilla inventados y pruebas automatizadas. `mvn -B clean verify` pasó con 251 pruebas, y la verificación contra MySQL confirmó el esquema, las claves foráneas, las restricciones únicas, el comportamiento de `updatedAt` y los códigos HTTP. El catálogo semilla permanece vacío por una decisión pendiente del negocio, por lo que no se probó en MySQL la repetición de una carga con catálogo no vacío. La autenticación, autorización efectiva, JWT, refresh tokens, CORS y auditoría administrativa general no formaron parte de este incremento. Consulta el Checkpoint 5 en `docs/mvp1.md` para el detalle.
+
+---
+
+# Incrementos técnicos transversales
+
+Estos incrementos complementan el MVP 1 y preparan su evolución. El detalle de alcance y checkpoints está en `docs/mvp1.md`.
+
+## Incremento 6 — Automated Testing & Code Quality
+
+Completar estrategia de pruebas, cobertura con JaCoCo, análisis estático y Quality Gate con SonarQube/SonarScanner, refactorización incremental revisada por personas, OpenAPI/Postman, y revisión de errores, logs, configuración y secretos. La línea base de cobertura es informativa; el Quality Gate será report-only, sin umbrales ni bloqueo de compilación al inicio.
+
+**Estado: en curso.** Implementados y verificados: JaCoCo (reportes por módulo y agregado), línea base de cobertura (93,9 % de líneas en el agregado, 285 pruebas), pruebas JPA con H2 para Producto, Unidad de Medida e Inventario, colección Postman con ejemplos genéricos, revisión de errores, OpenAPI, logs, configuración y secretos, y un servidor SonarQube Community Build 26.9 local. El proyecto `solgases` está creado para la rama `feature/clean-architecture`; su token de análisis, limitado a ese proyecto y con vencimiento de 30 días, se guarda en `.sonar.env`, ignorado por Git y sin seguimiento; `.env` ya no contiene `SONAR_TOKEN`. El analizador SonarJava 8.41.0.47177 declara soporte de Java 25; la confirmación empírica queda para el primer análisis. Pendientes: ejecutar el análisis SonarQube manual, revisar sus hallazgos de máxima severidad y completar la revisión humana. El Quality Gate es informativo. Jenkins/CI se difiere al Incremento 8 y el análisis de dependencias al Incremento 7. Detalle en `docs/mvp1.md`.
+
+## Incremento 7 — Securing Modern Applications
+
+Integrar Spring Security, autenticación JWT y autorización por políticas/permisos estables, con pruebas de accesos permitidos y denegados, análisis de dependencias y vulnerabilidades y gestión segura de secretos. En este incremento se decidirán la herramienta de análisis (por ejemplo, OWASP Dependency-Check), sus fuentes de datos y credenciales, y el tratamiento de hallazgos. Las credenciales de autenticación, rutas públicas, matriz endpoint–permiso, ciclo de vida de JWT y contenido real del catálogo de roles/permisos requieren decisiones previas; no se inventarán.
+
+## Incremento 8 — DevOps: CI/CD, Docker y despliegue
+
+Integrar Git con un pipeline Jenkins que ejecute build, pruebas, cobertura y análisis SonarQube; crear y publicar imágenes Docker sin secretos; automatizar despliegue, smoke tests, rollback, logs y monitoreo básico. WebLogic es el destino preferido, sujeto a una prueba previa: Spring Boot 4.1.1 requiere Servlet 6.1+, mientras que la documentación de WebLogic 15c (15.1.1) declara Jakarta EE 9.1 / Servlet 5.0. La versión de WebLogic disponible debe confirmarse antes de definir el WAR como ruta de despliegue obligatoria. Ver [detalle y referencias de compatibilidad](mvp1.md#incremento-8--devops-ci-cd-docker-y-despliegue).
 
 ## 2. Mantener el dominio preparado para crecer
 

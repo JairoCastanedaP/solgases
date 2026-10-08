@@ -1,0 +1,28 @@
+# Local SonarQube Community Build for manual analysis (Increment 6). Separate from the application
+# docker-compose.yml, with its own Compose project name. Start: docker compose -f docker-compose.sonar.yml up -d
+# No credentials are configured here: the analysis token is created in the SonarQube UI and kept as
+# SONAR_TOKEN in the git-ignored .env file.
+name: solgases-sonar
+
+services:
+  sonarqube:
+    # Exact version pinned after confirming that its Java analyzer fully supports Java 25
+    image: sonarqube:26.9.0.129388-community
+    container_name: solgases-sonarqube
+    ports:
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - solgases-sonarqube-data:/opt/sonarqube/data
+      - solgases-sonarqube-extensions:/opt/sonarqube/extensions
+      - solgases-sonarqube-logs:/opt/sonarqube/logs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9000/api/system/status | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+volumes:
+  solgases-sonarqube-data:
+  solgases-sonarqube-extensions:
+  solgases-sonarqube-logs:
