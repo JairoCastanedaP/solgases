@@ -1,0 +1,16 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+logging:
+  level:
+    com.solgases: INFO
+    # Hibernate logs JDBC errors at WARN, and database messages may include data values (e.g. duplicate keys)
+    org.hibernate.orm.jdbc.error: ERROR
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

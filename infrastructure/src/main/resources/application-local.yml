@@ -1,0 +1,17 @@
+spring:
+  # Loads DB_* values from the git-ignored .env file when it exists (copy .env.example)
+  config:
+    import: optional:file:.env[.properties]
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+logging:
+  level:
+    com.solgases: DEBUG
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

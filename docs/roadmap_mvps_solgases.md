@@ -32,24 +32,15 @@ Construir la primera versión funcional del backend de SOLGASES, proporcionando 
 
 ### 2. Arquitectura
 
-Organización por feature y capas internas:
+Clean Architecture en tres módulos Maven, de acuerdo con `docs/lineamientos.md` y el modelo F2/02 del curso:
 
 ```text
-src/main/java
-└── com.solgases
-    ├── user
-    │   ├── controller
-    │   ├── service
-    │   ├── repository
-    │   ├── entity
-    │   └── dto
-    ├── role
-    ├── product
-    ├── category
-    └── inventory
+domain/          # Modelos y reglas de negocio sin dependencias de frameworks
+application/     # Casos de uso, puertos, DTOs de aplicación y excepciones
+infrastructure/  # Adaptadores REST y de persistencia, mappers y configuración Spring
 ```
 
-La estructura debe ajustarse a los nombres definitivos del proyecto.
+Las dependencias apuntan hacia el dominio: `infrastructure → application → domain`. Los controladores REST llaman puertos de entrada de la aplicación; los adaptadores de persistencia implementan sus puertos de salida. La estructura interna se rige por `docs/lineamientos.md`.
 
 ### 3. Usuarios
 
@@ -110,7 +101,7 @@ La estructura debe ajustarse a los nombres definitivos del proyecto.
 
 ### 10. Pruebas
 
-- Pruebas unitarias de servicios.
+- Pruebas unitarias de casos de uso.
 - Pruebas de validaciones.
 - Pruebas de reglas críticas de inventario.
 - Pruebas de integración solo donde sean necesarias.
@@ -158,6 +149,7 @@ Construir una interfaz web para que los usuarios internos utilicen el backend de
 - MVP 1 terminado.
 - APIs REST estables.
 - Definición definitiva de roles y permisos.
+- Autenticación y autorización del Incremento 7 antes de exponer el frontend fuera de desarrollo local.
 
 ## No incluye
 
@@ -232,17 +224,16 @@ El sistema debería presentar alternativas existentes y disponibles según la in
 
 Mantener el chatbot desacoplado del dominio principal de inventario.
 
-Una posible separación futura:
+Una posible separación futura, respetando los módulos y límites de dependencias del proyecto:
 
 ```text
-chatbot
-├── controller
-├── service
-├── dto
-└── integration
+application/
+└── casos de uso y puertos
+infrastructure/
+└── adaptador de integración con IA
 ```
 
-El módulo de IA debería consultar información mediante servicios controlados, en lugar de acceder directamente a las entidades JPA.
+El adaptador de IA debería consultar información mediante puertos y casos de uso controlados, en lugar de acceder directamente a las entidades JPA. Su ubicación definitiva se definirá al aprobar ese MVP.
 
 ## No incluye
 
@@ -424,6 +415,53 @@ User → Role → Permission
 
 y finalmente integrar autorización sobre las operaciones.
 
+La autorización completa queda para una etapa posterior a la gestión administrativa User / Role / Permission y requiere una decisión específica. Hasta entonces el Incremento 5 se usa únicamente en local; no se simula esa limitación con un guard basado en perfil técnico. Consulta `mvp1.md` para las decisiones aprobadas del Incremento 5.
+
+**Estado del Incremento 5: implementado y verificado (Checkpoint 5).** Administración persistente de usuarios, roles y permisos, sus relaciones, carga inicial idempotente sin datos semilla inventados y pruebas automatizadas. `mvn -B clean verify` pasó con 251 pruebas, y la verificación contra MySQL confirmó el esquema, las claves foráneas, las restricciones únicas, el comportamiento de `updatedAt` y los códigos HTTP. El catálogo semilla permanece vacío por una decisión pendiente del negocio, por lo que no se probó en MySQL la repetición de una carga con catálogo no vacío. La autenticación, autorización efectiva, JWT, refresh tokens, CORS y auditoría administrativa general no formaron parte de este incremento. Consulta el Checkpoint 5 en `docs/mvp1.md` para el detalle.
+
+---
+
+# Incrementos técnicos transversales
+
+Estos incrementos complementan el MVP 1 y preparan su evolución. El detalle de alcance y checkpoints está en `docs/mvp1.md`.
+
+## Incremento 6 — Automated Testing & Code Quality
+
+Completar estrategia de pruebas, cobertura con JaCoCo, análisis estático y Quality Gate con SonarQube/SonarScanner, refactorización incremental revisada por personas, OpenAPI/Postman, y revisión de errores, logs, configuración y secretos. La línea base de cobertura es informativa; el Quality Gate será report-only, sin umbrales ni bloqueo de compilación al inicio.
+
+**Estado: en curso.** Implementados y verificados: JaCoCo (reportes por módulo y agregado), línea base de cobertura (93,9 % de líneas en el agregado, 285 pruebas), pruebas JPA con H2 para Producto, Unidad de Medida e Inventario, colección Postman con ejemplos genéricos, revisión de errores, OpenAPI, logs, configuración y secretos, y un servidor SonarQube Community Build 26.9 local. El proyecto `solgases` está creado para la rama `feature/clean-architecture`; su token de análisis, limitado a ese proyecto y con vencimiento de 30 días, se guarda en `.sonar.env`, ignorado por Git y sin seguimiento; `.env` ya no contiene `SONAR_TOKEN`. El analizador SonarJava 8.41.0.47177 declara soporte de Java 25; la confirmación empírica queda para el primer análisis. Pendientes: ejecutar el análisis SonarQube manual, revisar sus hallazgos de máxima severidad y completar la revisión humana. El Quality Gate es informativo. Jenkins/CI se difiere al Incremento 8 y el análisis de dependencias al Incremento 7. Detalle en `docs/mvp1.md`.
+
+## Incremento 7 — Securing Modern Applications
+
+Integrar Spring Security, autenticación local con JWT y autorización por políticas/permisos estables, con pruebas de accesos permitidos y denegados, análisis de dependencias con OWASP Dependency-Check/Maven usando NVD y gestión segura de secretos. Se aprobaron Argon2id para las contraseñas, JWT HS256 con access token de 15 minutos y sin refresh tokens, consulta del estado y permisos actuales en cada solicitud protegida, y CORS deshabilitado hasta conocer los orígenes permitidos. Hallazgos críticos bloquean el cierre; los altos requieren triage y remediación o excepción aprobada. El catálogo de roles y permisos, la matriz endpoint–permiso y el aprovisionamiento del primer administrador no se inventaron: se aprobaron el 2026-10-08, antes de implementarlos. Consulta `docs/mvp1.md` para las decisiones y el Checkpoint 7.
+
+**Estado: Checkpoint 7 cerrado para el alcance local (2026-10-08).**
+
+- **Autenticación:**
+  - credenciales locales separadas con Argon2id;
+  - `POST /api/auth/token` como única operación de negocio pública;
+  - JWT HS256 de 15 minutos sin refresh tokens;
+  - estado y permisos actuales consultados en cada solicitud;
+  - política de contraseñas de 15 a 128 puntos de código Unicode, sin reglas de composición.
+- **Autorización:** 9 permisos de negocio, roles `ADMIN` y `VIEWER`, y matriz de 38 operaciones con denegación por defecto y 401/403 en `ProblemDetail`. Swagger/OpenAPI es público en `local`, `dev` y `qa` y está desactivado en `prd`; CORS sigue deshabilitado.
+- **Credenciales:** comando local sin servidor web para crear el primer administrador y provisionar credenciales, sin credenciales predeterminadas ni ruta pública de alta.
+- **Base de datos y dependencias:**
+  - la base local se migró a MySQL 8.4.12 y Connector/J 26.7.0, con la reversión ensayada en recursos desechables;
+  - Dependency-Check (NVD): 0 críticos, 0 altos, 0 medios y 2 bajos de DOMPurify en Swagger UI, aceptados temporalmente;
+  - OSS Index no se consultó.
+- **Verificación:**
+  - `mvn -B clean verify`: 468 pruebas sin fallos;
+  - pruebas manuales locales con el administrador (login 200, consultas protegidas 200, sin token 401) y con `viewer-test` de rol `VIEWER` (200 en categorías y productos, 403 en usuarios y roles);
+  - `viewer-test` quedó desactivado y se conserva como evidencia.
+- **Riesgos residuales:** aceptados solo para uso local. Bloquean exponer o desplegar fuera de local hasta resolverse: límite de intentos de autenticación, riesgo del último administrador, orígenes CORS, gestión de la clave JWT, coste de Argon2id en el entorno objetivo y configuración de QA y producción.
+- **Revisión humana final:** se hará al cierre del MVP.
+
+*Antecedente histórico:* antes del 2026-10-08 el incremento usaba MySQL 8.0.46 con Connector/J 9.7.0, que tenía hallazgos altos, y la autorización funcional estaba bloqueada con la matriz vacía. Detalle en `docs/mvp1.md`.
+
+## Incremento 8 — DevOps: CI/CD, Docker y despliegue
+
+Integrar Git con un pipeline Jenkins que ejecute build, pruebas, cobertura y análisis SonarQube; crear y publicar imágenes Docker sin secretos; automatizar despliegue, smoke tests, rollback, logs y monitoreo básico. WebLogic es el destino preferido, sujeto a una prueba previa: Spring Boot 4.1.1 requiere Servlet 6.1+, mientras que la documentación de WebLogic 15c (15.1.1) declara Jakarta EE 9.1 / Servlet 5.0. La versión de WebLogic disponible debe confirmarse antes de definir el WAR como ruta de despliegue obligatoria. Ver [detalle y referencias de compatibilidad](mvp1.md#incremento-8--devops-ci-cd-docker-y-despliegue).
+
 ## 2. Mantener el dominio preparado para crecer
 
 No introducir todavía entidades de chatbot, WhatsApp o recomendaciones en el MVP 1 solo porque aparecen en el alcance futuro.
@@ -436,9 +474,9 @@ El inventario representa cuántas unidades existen y cómo han cambiado las exis
 
 Esta separación facilitará la evolución posterior.
 
-## 4. Diseñar pensando en auditoría
+## 4. Diseñar pensando en trazabilidad de inventario
 
-Los movimientos de inventario deberían ser trazables.
+Los movimientos de inventario deben conservar la trazabilidad definida para ese incremento. Esto no implica implementar una auditoría administrativa general en el Incremento 5.
 
 ## 5. Mantener el backend independiente del frontend
 
@@ -484,9 +522,9 @@ Como evolución de `lineamientos.md`, sería conveniente definir posteriormente:
 - estándar de errores REST;
 - convenciones de nombres de endpoints;
 - paginación y filtrado;
-- estrategia de migraciones de base de datos;
+- estrategia general de migraciones de esquema (distinta de restablecer datos de desarrollo);
 - estrategia de autenticación/autorización;
-- auditoría;
+- auditoría administrativa general (no incluida en el Incremento 5; conservar la trazabilidad requerida para inventario);
 - transacciones;
 - versionado de API;
 - estándares de calidad y análisis estático.

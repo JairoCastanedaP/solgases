@@ -17,6 +17,7 @@ target/
 .env
 .env.*
 !.env.example
+.sonar.env
 
 # OS
 .DS_Store

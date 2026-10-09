@@ -64,9 +64,9 @@ Como mínimo deberá contemplarse:
 - Consultar usuario.
 - Actualizar usuario.
 - Activar/desactivar usuario.
-- Asociar usuario a uno o más roles, si esta decisión se confirma.
+- Asociar User a varios roles (relación N:M), según la decisión aprobada para el Incremento 5.
 
-**Decisiones pendientes:** campos obligatorios del usuario, política de contraseñas, autenticación y si un usuario puede tener múltiples roles.
+Para el Incremento 5, User tendrá `username` único, nombre para mostrar y estado activo/inactivo; los usuarios nuevos estarán activos. User no almacenará contraseña ni otras credenciales en este incremento. El cambio de contraseña queda aplazado. Los campos de User y la relación N:M con Role están aprobados; no deben tratarse como decisiones pendientes.
 
 ### RF-02 — Gestión de roles y permisos
 
@@ -78,7 +78,14 @@ Se recomienda separar conceptualmente:
 - Rol.
 - Permiso.
 
-La granularidad definitiva de permisos queda pendiente de definición.
+La granularidad adicional de permisos que exceda las operaciones aprobadas queda pendiente de definición. Para el Incremento 5, los códigos de permisos son editables, sus claves internas son estables, la carga inicial es idempotente y un rol puede tener cero permisos; consultar `mvp1.md` para las decisiones aprobadas completas.
+
+**Catálogo inicial aprobado (2026-10-08, Incremento 7):**
+- **Permisos de negocio** (lectura y escritura por área): `CATALOG_READ`, `CATALOG_WRITE`, `INVENTORY_READ`, `INVENTORY_MOVE`, `INVENTORY_ADJUST`, `USER_READ`, `USER_WRITE`, `ACCESS_READ` y `ACCESS_WRITE`.
+- **Roles:** `ADMIN`, con todos esos permisos y el único con `USER_WRITE` y `ACCESS_WRITE`, y `VIEWER`, con `CATALOG_READ` e `INVENTORY_READ`.
+- Un rol de operación de inventario (`INVENTORY_OPERATOR`) sigue **pendiente de definición del negocio**.
+
+La matriz endpoint–permiso y el aprovisionamiento del primer administrador están en `mvp1.md`, Incremento 7.
 
 ### RF-03 — Gestión de categorías
 
@@ -195,7 +202,7 @@ Los siguientes requisitos técnicos se derivan directamente de los lineamientos 
 
 ### RNF-02 — Arquitectura
 
-El proyecto deberá utilizar estructura Maven estándar y organizar los paquetes por funcionalidad, manteniendo dentro de cada feature sus capas de controller, service, repository, entity y dto cuando sean necesarias. fileciteturn0file0L30-L44
+El proyecto deberá utilizar estructura Maven estándar y Clean Architecture en tres módulos: `domain`, `application` e `infrastructure`, de acuerdo con `docs/lineamientos.md` y el modelo F2/02 del curso. El dominio contendrá modelos y reglas de negocio; la aplicación contendrá casos de uso, puertos, DTOs de aplicación y excepciones; infraestructura contendrá adaptadores REST y de persistencia, entidades JPA, mappers y configuración. Las dependencias apuntarán hacia el dominio y las entidades JPA no se expondrán por REST.
 
 ### RNF-03 — Diseño
 
@@ -203,11 +210,11 @@ Se deberán aplicar principios SOLID, mantener clases cohesionadas, evitar abstr
 
 ### RNF-04 — APIs
 
-Los controladores deberán centrarse en aspectos HTTP y la lógica de negocio deberá permanecer en la capa de servicio. Las solicitudes deberán validarse mediante Bean Validation. fileciteturn0file0L68-L75
+Los controladores REST deberán centrarse en aspectos HTTP y delegar en los puertos de entrada de la aplicación. La lógica de negocio deberá permanecer en los casos de uso y el dominio. Las solicitudes deberán validarse mediante Bean Validation. fileciteturn0file0L68-L75
 
 ### RNF-05 — Persistencia
 
-El acceso a MySQL deberá realizarse mediante Spring Data JPA y repositories. Las entidades de persistencia no deberán exponerse directamente por REST; se deberán utilizar DTOs. fileciteturn0file0L77-L82
+El acceso a MySQL deberá realizarse mediante adaptadores de persistencia de infraestructura y repositorios Spring Data JPA. Las entidades de persistencia no deberán exponerse directamente por REST; se deberán mapear a modelos de dominio o DTOs según el límite correspondiente. fileciteturn0file0L77-L82
 
 ### RNF-06 — Configuración
 
@@ -311,8 +318,8 @@ Antes de implementar funcionalidades avanzadas conviene validar:
 - Cómo se manejan unidades de medida.
 - Cómo se controla el inventario actualmente.
 - Si existen productos con lotes, seriales o vencimiento.
-- Quién puede modificar inventario.
-- Qué roles existen.
+- Quién puede modificar inventario. *Parcialmente resuelto (2026-10-08):* registrar entradas y salidas exige `INVENTORY_MOVE`, y los ajustes `INVENTORY_ADJUST`; hoy solo `ADMIN` tiene ambos. Queda pendiente qué rol operativo, si lo hay, debe tenerlos.
+- Qué roles existen. *Parcialmente resuelto (2026-10-08):* el catálogo inicial tiene `ADMIN` y `VIEWER`; otros roles, como un operador de inventario, siguen pendientes.
 - Si habrá clientes registrados.
 - Política de precios.
 - Manejo de proveedores.
@@ -352,13 +359,13 @@ Documentar convenciones para:
 - versionado de API.
 - formato de errores.
 
-### 11.3 Definir estrategia de migraciones de base de datos
+### 11.3 Definir estrategia general de migraciones de esquema
 
-Se recomienda incorporar una herramienta de migraciones, por ejemplo Flyway, pero esta decisión debe aprobarse porque `lineamientos.md` indica que no se deben introducir frameworks adicionales salvo solicitud expresa. Por tanto, no debe agregarse automáticamente.
+Sigue pendiente decidir si se requiere una estrategia general de migraciones de esquema y qué herramienta usar, respetando la regla de no incorporar frameworks adicionales sin aprobación. Esta decisión es independiente de los datos de desarrollo: para el Incremento 5 se aprobó que dichos registros pueden restablecerse y recrearse, por lo que no se requiere un plan para migrarlos o conservarlos.
 
 ### 11.4 Definir auditoría
 
-Para inventario resulta recomendable establecer quién creó/modificó registros y cuándo. Para movimientos de inventario, la trazabilidad debería ser obligatoria.
+No se implementará auditoría administrativa general en el Incremento 5 (historial de cambios administrativos y atribución de quién modificó qué). User, Role y Permission sí tendrán timestamps técnicos básicos (`createdAt` / `updatedAt`), sin Spring Data JPA Auditing. `updatedAt` cambiará cuando cambien campos o relaciones; una operación repetida sin cambios no lo actualizará. La trazabilidad de movimientos de inventario corresponde a su alcance funcional y no implica habilitar ahora una auditoría general para todas las entidades.
 
 ### 11.5 Definir transacciones
 
@@ -366,7 +373,27 @@ Documentar cuándo una operación de negocio debe ejecutarse dentro de una trans
 
 ### 11.6 Definir seguridad
 
-El documento actual define usuarios y roles como necesidad funcional, pero todavía no especifica el mecanismo de autenticación/autorización. Antes de implementar seguridad se debería decidir el mecanismo, gestión de credenciales, expiración de sesiones/tokens y permisos.
+*Antecedente (Incremento 5):* el Incremento 5 cubre la gestión administrativa de User, Role y Permission según `mvp1.md`, pero no la autenticación/autorización completa. Hasta que esta se defina y apruebe, el uso es local de desarrollo; no se añadirá un guard de perfil técnico como sustituto. El cambio de contraseña queda aplazado. Las claves internas estables de roles y permisos son independientes de los nombres de roles y códigos de permisos editables; la carga inicial debe ser idempotente y un rol puede tener cero permisos. Los campos y la cardinalidad User–Role ya están aprobados y se describen en la sección RF-01.
+
+**Estado tras el Incremento 7 (2026-10-08).** La autenticación y la autorización completas están definidas, aprobadas e implementadas según `mvp1.md`:
+- autenticación local con JWT;
+- autorización por permisos con denegación por defecto;
+- catálogo inicial y matriz endpoint–permiso aprobados;
+- Swagger/OpenAPI público solo en `local`, `dev` y `qa`;
+- un comando local sin servidor web para crear el primer administrador y provisionar credenciales, sin credenciales predeterminadas ni ruta pública de alta.
+
+El administrador inicial se creó en la base local y la autorización se verificó manualmente con usuarios reales el 2026-10-08: 200 para los permisos concedidos y 403 para un usuario `VIEWER` en operaciones reservadas a `ADMIN`. El Checkpoint 7 quedó cerrado para el alcance local.
+
+Siguen pendientes:
+- el cambio de contraseña y una API administrativa de credenciales;
+- el límite de intentos de autenticación, que debe resolverse antes de exponer la API fuera del entorno local;
+- los orígenes CORS.
+
+Se aceptó solo para uso local que el último administrador activo pueda desactivarse o perder el rol `ADMIN` (2026-10-08). Debe revisarse y resolverse antes de desplegar fuera de local. *Antecedente:* hasta esa fecha figuraba entre los pendientes como «reglas que eviten dejar el sistema sin administradores activos».
+
+El nombre de usuario no distingue mayúsculas ni acentos (colación `utf8mb4_0900_ai_ci`).
+
+La política de contraseñas también se aprobó y se implementó el 2026-10-08: de 15 a 128 caracteres contados como puntos de código Unicode, sin reglas de composición y sin alterar el valor introducido. El detalle está en `mvp1.md`. Hasta esa fecha figuraba entre los pendientes.
 
 ### 11.7 Revisar la versión de Java
 

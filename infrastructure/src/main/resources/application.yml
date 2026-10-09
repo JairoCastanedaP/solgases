@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: solgases
+  profiles:
+    default: local
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:solgases}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+
+solgases:
+  security:
+    jwt:
+      # Base64-encoded HS256 key of at least 256 bits, provided outside the repository. Never commit it.
+      secret: ${JWT_SECRET:}
+    # Argon2id cost: OWASP minimum (19 MiB, 2 iterations, parallelism 1); lower values are rejected at startup
+    argon2:
+      memory-kib: 19456
+      iterations: 2
+      parallelism: 1

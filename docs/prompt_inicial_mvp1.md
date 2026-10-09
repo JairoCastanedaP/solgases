@@ -2,7 +2,11 @@
 
 ## Objetivo
 
-Este archivo contiene el prompt inicial para comenzar el desarrollo del MVP 1 de SOLGASES APP utilizando Claude Code.
+Este archivo conserva el contexto y el prompt inicial para comenzar el MVP 1 de SOLGASES APP utilizando Claude Code. Es una referencia para la primera interacción, no una plantilla que deba repetirse en cada ciclo.
+
+## Ciclos posteriores
+
+Después de la revisión inicial, el desarrollador puede aclarar o aprobar decisiones directamente en los archivos Markdown pertinentes. En cada ciclo Claude Code debe volver a leer `CLAUDE.md` y la documentación relevante, considerar esas aclaraciones como fuente de verdad y continuar el incremento activo ante una solicitud breve de revisión. No es necesario mantener ni pegar un prompt largo separado por ciclo. Si queda una contradicción real, debe señalarse y solicitar una aclaración concreta antes de asumir.
 
 El propósito de esta primera interacción NO es implementar todo el MVP 1.
 
@@ -74,9 +78,9 @@ No asumas que el repositorio está vacío.
 En esta primera interacción NO debes:
 
 - Crear entidades.
-- Crear controllers.
-- Crear services.
-- Crear repositories.
+- Crear controladores REST.
+- Crear casos de uso.
+- Crear adaptadores de persistencia o repositorios Spring Data.
 - Modificar el modelo de datos.
 - Implementar CRUD.
 - Implementar autenticación.
@@ -87,14 +91,16 @@ Primero quiero revisar tu análisis.
 
 ## 5. Analiza la arquitectura
 
+La arquitectura aprobada para SOLGASES es Clean Architecture en los módulos Maven `domain`, `application` e `infrastructure`, descrita en `docs/lineamientos.md` y basada en el modelo F2/02 del curso. No la sustituyas por una organización alternativa por paquetes de feature.
+
 Con base en los documentos y el repositorio, analiza:
 
 - Arquitectura propuesta.
-- Organización por features.
+- Responsabilidades de los tres módulos y límites entre ellos.
 - Módulos iniciales.
 - Entidades conceptuales.
 - Relaciones principales.
-- Capas necesarias.
+- Puertos y adaptadores necesarios.
 - Dependencias.
 - Riesgos técnicos.
 - Decisiones que todavía requieren definición.

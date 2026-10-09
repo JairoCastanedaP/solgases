@@ -19,7 +19,7 @@ Define, entre otros aspectos:
 - Versión de Spring Boot.
 - Tecnologías permitidas.
 - Estructura del proyecto.
-- Organización por features.
+- Arquitectura limpia en los módulos Maven domain, application e infrastructure.
 - Principios SOLID.
 - Convenciones de desarrollo.
 - Uso de DTOs.
