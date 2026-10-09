@@ -31,6 +31,16 @@
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <!-- SonarScanner for Maven 5.x requires a Java 21+ runtime -->
         <sonar-maven-plugin.version>5.8.0.7211</sonar-maven-plugin.version>
+        <!-- Overrides the Tomcat version managed by Spring Boot 4.1.1 (11.0.24), which is affected by critical and
+             high CVEs fixed in 11.0.25 (Dependency-Check, Increment 7). Remove when Spring Boot manages 11.0.25+. -->
+        <tomcat.version>11.0.26</tomcat.version>
+        <!-- Overrides the Connector/J version managed by Spring Boot (9.7.0, affected by high CVEs). 26.7.0 supports
+             MySQL Server 8.4 and later; the local MySQL instance runs 8.4.12 (Increment 7). -->
+        <mysql.version>26.7.0</mysql.version>
+        <!-- Required by Spring Security's Argon2PasswordEncoder; not managed by Spring Boot -->
+        <bouncycastle.version>1.86</bouncycastle.version>
+        <!-- OWASP Dependency-Check (NVD). The NVD API key is read from the NVD_API_KEY environment variable -->
+        <dependency-check-maven.version>12.2.2</dependency-check-maven.version>
         <!-- The aggregate report of the infrastructure module covers the three modules. The SonarQube
              host URL and token are not configured here: pass them at analysis time (SONAR_HOST_URL, SONAR_TOKEN). -->
         <sonar.projectKey>solgases</sonar.projectKey>
@@ -54,6 +64,11 @@
                 <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
                 <version>${springdoc-openapi.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>${bouncycastle.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -69,6 +84,24 @@
                     <groupId>org.sonarsource.scanner.maven</groupId>
                     <artifactId>sonar-maven-plugin</artifactId>
                     <version>${sonar-maven-plugin.version}</version>
+                </plugin>
+                <!-- Run explicitly: mvn -B org.owasp:dependency-check-maven:aggregate (see docs/mvp1.md, Increment 7) -->
+                <plugin>
+                    <groupId>org.owasp</groupId>
+                    <artifactId>dependency-check-maven</artifactId>
+                    <version>${dependency-check-maven.version}</version>
+                    <configuration>
+                        <!-- Critical findings (CVSS 9.0-10.0) fail the build; high ones are triaged manually -->
+                        <failBuildOnCVSS>9</failBuildOnCVSS>
+                        <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+                        <suppressionFiles>
+                            <suppressionFile>${maven.multiModuleProjectDirectory}/dependency-check-suppressions.xml</suppressionFile>
+                        </suppressionFiles>
+                        <formats>
+                            <format>HTML</format>
+                            <format>JSON</format>
+                        </formats>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>

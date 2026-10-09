@@ -19,6 +19,8 @@ public interface RoleJpaRepository extends JpaRepository<RoleJpaEntity, Long> {
     @Query("select distinct r from RoleJpaEntity r left join fetch r.permissions where r.id in :ids")
     List<RoleJpaEntity> findAllWithPermissionsByIdIn(@Param("ids") Collection<Long> ids);
 
+    Optional<RoleJpaEntity> findByKey(String key);
+
     boolean existsByKey(String key);
 
     boolean existsByName(String name);

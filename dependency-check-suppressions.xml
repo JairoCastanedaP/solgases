@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Approved exceptions for OWASP Dependency-Check findings (Increment 7).
+  A suppression may only be added after a person triages the finding and the exception is approved and
+  justified in docs/mvp1.md. Critical findings (CVSS 9.0-10.0) block the closure and must not be suppressed
+  without an explicit, documented approval. Do not add suppressions proposed by AI tools without review.
+-->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+</suppressions>

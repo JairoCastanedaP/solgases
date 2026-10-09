@@ -7,6 +7,7 @@ import com.solgases.application.exception.UnitOfMeasureNotFoundException;
 import com.solgases.application.exception.DuplicateProductSkuException;
 import com.solgases.application.exception.ProductNotFoundException;
 import com.solgases.application.exception.InventoryMovementNotFoundException;
+import com.solgases.application.exception.AuthenticationFailedException;
 import com.solgases.application.exception.ConflictException;
 import com.solgases.application.exception.ResourceNotFoundException;
 import java.util.List;
@@ -18,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -77,6 +80,25 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     public ProblemDetail handleConflict(ConflictException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /** Failed login. The detail is generic and never reveals which part of the credentials was wrong. */
+    @ExceptionHandler(AuthenticationFailedException.class)
+    public ProblemDetail handleAuthenticationFailed(AuthenticationFailedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    /** Security exceptions raised inside a controller must not end up as 500 responses. */
+    @ExceptionHandler(AuthenticationException.class)
+    public ProblemDetail handleSecurityAuthentication(AuthenticationException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED,
+                "Authentication is required to access this resource");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN,
+                "You do not have permission to access this resource");
     }
 
     /**

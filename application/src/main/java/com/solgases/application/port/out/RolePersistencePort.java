@@ -10,6 +10,9 @@ public interface RolePersistencePort {
     /** Returns the role with its permissions. */
     Optional<Role> findById(Long id);
 
+    /** Returns the role with the given internal key, with its permissions. */
+    Optional<Role> findByKey(String key);
+
     /** Returns all roles with their permissions. */
     List<Role> findAll();
 

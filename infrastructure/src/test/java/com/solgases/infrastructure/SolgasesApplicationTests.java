@@ -2,6 +2,7 @@ package com.solgases.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.solgases.infrastructure.config.RolePermissionSeedRunner;
 import com.solgases.infrastructure.persistence.repository.CategoryJpaRepository;
 import com.solgases.infrastructure.persistence.repository.InventoryMovementJpaRepository;
 import com.solgases.infrastructure.persistence.repository.InventoryJpaRepository;
@@ -9,6 +10,7 @@ import com.solgases.infrastructure.persistence.repository.PermissionJpaRepositor
 import com.solgases.infrastructure.persistence.repository.ProductJpaRepository;
 import com.solgases.infrastructure.persistence.repository.RoleJpaRepository;
 import com.solgases.infrastructure.persistence.repository.UnitOfMeasureJpaRepository;
+import com.solgases.infrastructure.persistence.repository.UserCredentialJpaRepository;
 import com.solgases.infrastructure.persistence.repository.UserJpaRepository;
 import com.solgases.infrastructure.SolgasesApplication;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -17,6 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
@@ -59,6 +63,18 @@ class SolgasesApplicationTests {
 
     @MockitoBean
     private EntityManager entityManager;
+
+    @MockitoBean
+    private UserCredentialJpaRepository userCredentialRepository;
+
+    // Without a database the initial role/permission catalog cannot be loaded
+    @MockitoBean
+    private RolePermissionSeedRunner rolePermissionSeedRunner;
+
+    @DynamicPropertySource
+    static void securityProperties(DynamicPropertyRegistry registry) {
+        TestJwtSecret.register(registry);
+    }
 
     @Autowired
     private ApplicationContext context;

@@ -7,7 +7,8 @@ The specification is exported by OpenApiDocumentationTest to infrastructure/targ
     python3 docs/postman/generate_postman_collection.py
 
 Only the Python standard library is used. No credentials are written: the base URLs for dev, qa and prd are
-left empty on purpose and must be filled in locally by whoever uses the environment.
+left empty on purpose and must be filled in locally by whoever uses the environment. The access token variable
+is always empty; the token obtained from POST /api/auth/token must be set locally and never committed.
 """
 
 import json
@@ -80,6 +81,9 @@ def build_request(path, method, operation, components):
 
     headers = [{"key": "Accept", "value": "application/json"}]
     request = {"method": method.upper(), "header": headers, "url": url, "description": describe(operation)}
+    # Operations with an explicit empty security list (the token operation) are public
+    if operation.get("security") == []:
+        request["auth"] = {"type": "noauth"}
     body = operation.get("requestBody", {}).get("content", {}).get("application/json")
     if body:
         headers.append({"key": "Content-Type", "value": "application/json"})
@@ -109,6 +113,8 @@ def build_collection(spec):
             "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         },
         "item": [{"name": tag, "item": folders[tag]} for tag in sorted(folders)],
+        # Every protected request sends the bearer token stored in the accessToken variable (empty by default)
+        "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]},
         "variable": [{"key": "baseUrl", "value": LOCAL_BASE_URL}],
     }
 
@@ -122,6 +128,8 @@ def build_environment():
             {"key": "baseUrlDev", "value": "", "type": "default", "enabled": True},
             {"key": "baseUrlQa", "value": "", "type": "default", "enabled": True},
             {"key": "baseUrlPrd", "value": "", "type": "default", "enabled": True},
+            # Paste a token obtained from POST /api/auth/token locally; never commit a real value
+            {"key": "accessToken", "value": "", "type": "secret", "enabled": True},
         ],
         "_postman_variable_scope": "environment",
     }

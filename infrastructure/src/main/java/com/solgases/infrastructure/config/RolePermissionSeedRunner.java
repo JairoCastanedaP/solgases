@@ -6,10 +6,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-/** Loads the initial roles and permissions on startup. Running it again creates no duplicates. */
+/**
+ * Loads the initial roles and permissions on startup, before any other runner (such as the credential command).
+ * Running it again creates no duplicates.
+ */
 @Component
+@Order(0)
 public class RolePermissionSeedRunner implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(RolePermissionSeedRunner.class);

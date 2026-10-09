@@ -34,6 +34,11 @@ public class RolePersistenceAdapter implements RolePersistencePort {
     }
 
     @Override
+    public Optional<Role> findByKey(String key) {
+        return roleRepository.findByKey(key).flatMap(role -> findById(role.getId()));
+    }
+
+    @Override
     public List<Role> findAll() {
         return roleRepository.findAllWithPermissions().stream().map(RolePersistenceMapper::toDomain).toList();
     }

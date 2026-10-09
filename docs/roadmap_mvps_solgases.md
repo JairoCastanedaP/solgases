@@ -433,7 +433,30 @@ Completar estrategia de pruebas, cobertura con JaCoCo, análisis estático y Qua
 
 ## Incremento 7 — Securing Modern Applications
 
-Integrar Spring Security, autenticación JWT y autorización por políticas/permisos estables, con pruebas de accesos permitidos y denegados, análisis de dependencias y vulnerabilidades y gestión segura de secretos. En este incremento se decidirán la herramienta de análisis (por ejemplo, OWASP Dependency-Check), sus fuentes de datos y credenciales, y el tratamiento de hallazgos. Las credenciales de autenticación, rutas públicas, matriz endpoint–permiso, ciclo de vida de JWT y contenido real del catálogo de roles/permisos requieren decisiones previas; no se inventarán.
+Integrar Spring Security, autenticación local con JWT y autorización por políticas/permisos estables, con pruebas de accesos permitidos y denegados, análisis de dependencias con OWASP Dependency-Check/Maven usando NVD y gestión segura de secretos. Se aprobaron Argon2id para las contraseñas, JWT HS256 con access token de 15 minutos y sin refresh tokens, consulta del estado y permisos actuales en cada solicitud protegida, y CORS deshabilitado hasta conocer los orígenes permitidos. Hallazgos críticos bloquean el cierre; los altos requieren triage y remediación o excepción aprobada. El catálogo de roles y permisos, la matriz endpoint–permiso y el aprovisionamiento del primer administrador no se inventaron: se aprobaron el 2026-10-08, antes de implementarlos. Consulta `docs/mvp1.md` para las decisiones y el Checkpoint 7.
+
+**Estado: Checkpoint 7 cerrado para el alcance local (2026-10-08).**
+
+- **Autenticación:**
+  - credenciales locales separadas con Argon2id;
+  - `POST /api/auth/token` como única operación de negocio pública;
+  - JWT HS256 de 15 minutos sin refresh tokens;
+  - estado y permisos actuales consultados en cada solicitud;
+  - política de contraseñas de 15 a 128 puntos de código Unicode, sin reglas de composición.
+- **Autorización:** 9 permisos de negocio, roles `ADMIN` y `VIEWER`, y matriz de 38 operaciones con denegación por defecto y 401/403 en `ProblemDetail`. Swagger/OpenAPI es público en `local`, `dev` y `qa` y está desactivado en `prd`; CORS sigue deshabilitado.
+- **Credenciales:** comando local sin servidor web para crear el primer administrador y provisionar credenciales, sin credenciales predeterminadas ni ruta pública de alta.
+- **Base de datos y dependencias:**
+  - la base local se migró a MySQL 8.4.12 y Connector/J 26.7.0, con la reversión ensayada en recursos desechables;
+  - Dependency-Check (NVD): 0 críticos, 0 altos, 0 medios y 2 bajos de DOMPurify en Swagger UI, aceptados temporalmente;
+  - OSS Index no se consultó.
+- **Verificación:**
+  - `mvn -B clean verify`: 468 pruebas sin fallos;
+  - pruebas manuales locales con el administrador (login 200, consultas protegidas 200, sin token 401) y con `viewer-test` de rol `VIEWER` (200 en categorías y productos, 403 en usuarios y roles);
+  - `viewer-test` quedó desactivado y se conserva como evidencia.
+- **Riesgos residuales:** aceptados solo para uso local. Bloquean exponer o desplegar fuera de local hasta resolverse: límite de intentos de autenticación, riesgo del último administrador, orígenes CORS, gestión de la clave JWT, coste de Argon2id en el entorno objetivo y configuración de QA y producción.
+- **Revisión humana final:** se hará al cierre del MVP.
+
+*Antecedente histórico:* antes del 2026-10-08 el incremento usaba MySQL 8.0.46 con Connector/J 9.7.0, que tenía hallazgos altos, y la autorización funcional estaba bloqueada con la matriz vacía. Detalle en `docs/mvp1.md`.
 
 ## Incremento 8 — DevOps: CI/CD, Docker y despliegue
 

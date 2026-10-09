@@ -15,7 +15,11 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, Long> {
     @Query("select distinct u from UserJpaEntity u left join fetch u.roles order by u.id")
     List<UserJpaEntity> findAllWithRoles();
 
+    Optional<UserJpaEntity> findByUsername(String username);
+
     boolean existsByUsername(String username);
 
     boolean existsByUsernameAndIdNot(String username, Long id);
+
+    boolean existsByActiveTrueAndRolesKey(String roleKey);
 }

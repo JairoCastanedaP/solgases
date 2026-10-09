@@ -1,6 +1,6 @@
 services:
   mysql:
-    image: mysql:8.0
+    image: container-registry.oracle.com/mysql/community-server:8.4.12@sha256:7dcc4add9183664de3a214daf85a50c3ba6cccfd7534f700b6561bf5b41885be
     container_name: solgases-mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env}
@@ -8,9 +8,9 @@ services:
       MYSQL_USER: ${DB_USERNAME:?Set DB_USERNAME in .env}
       MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     ports:
-      - "${DB_PORT:-3307}:3306"
+      - "127.0.0.1:${DB_PORT:-3307}:3306"
     volumes:
-      - solgases-mysql-data:/var/lib/mysql
+      - solgases-mysql84-data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -18,4 +18,5 @@ services:
       retries: 10
 
 volumes:
-  solgases-mysql-data:
+  # The MySQL 8.0 volume (solgases_solgases-mysql-data) is kept outside Compose as the rollback copy
+  solgases-mysql84-data:

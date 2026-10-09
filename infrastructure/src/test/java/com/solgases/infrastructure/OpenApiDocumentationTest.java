@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.solgases.infrastructure.config.RolePermissionSeedRunner;
 import com.solgases.infrastructure.persistence.repository.CategoryJpaRepository;
 import com.solgases.infrastructure.persistence.repository.InventoryJpaRepository;
 import com.solgases.infrastructure.persistence.repository.InventoryMovementJpaRepository;
@@ -11,6 +12,7 @@ import com.solgases.infrastructure.persistence.repository.PermissionJpaRepositor
 import com.solgases.infrastructure.persistence.repository.ProductJpaRepository;
 import com.solgases.infrastructure.persistence.repository.RoleJpaRepository;
 import com.solgases.infrastructure.persistence.repository.UnitOfMeasureJpaRepository;
+import com.solgases.infrastructure.persistence.repository.UserCredentialJpaRepository;
 import com.solgases.infrastructure.persistence.repository.UserJpaRepository;
 import jakarta.persistence.EntityManager;
 import java.nio.charset.StandardCharsets;
@@ -22,6 +24,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -31,8 +35,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Checks that every REST operation is documented in the generated OpenAPI specification, without a database:
- * a summary, a success response, the generic 500 ProblemDetail response and, when the operation accepts client
- * input, its client error responses.
+ * a summary, a success response, the generic 500 ProblemDetail response, the 401/403 responses when it is
+ * protected and, when the operation accepts client input, its client error responses.
  * The specification is also written to target/openapi/openapi.json, which is the source used to regenerate
  * the Postman collection in docs/postman.
  */
@@ -66,6 +70,18 @@ class OpenApiDocumentationTest {
     @MockitoBean
     private EntityManager entityManager;
 
+    @MockitoBean
+    private UserCredentialJpaRepository userCredentialRepository;
+
+    // Without a database the initial role/permission catalog cannot be loaded
+    @MockitoBean
+    private RolePermissionSeedRunner rolePermissionSeedRunner;
+
+    @DynamicPropertySource
+    static void securityProperties(DynamicPropertyRegistry registry) {
+        TestJwtSecret.register(registry);
+    }
+
     @Autowired
     private WebApplicationContext context;
 
@@ -82,6 +98,7 @@ class OpenApiDocumentationTest {
         JsonNode spec = JsonMapper.builder().build().readTree(json);
         JsonNode paths = spec.get("paths");
         List<String> undocumented = new ArrayList<>();
+        List<String> publicOperations = new ArrayList<>();
         int operations = 0;
         for (Map.Entry<String, JsonNode> path : paths.properties()) {
             for (String method : HTTP_METHODS) {
@@ -100,13 +117,24 @@ class OpenApiDocumentationTest {
                 } else if (acceptsClientInput(operation) && !hasResponse(responses, "4")) {
                     undocumented.add(name + ": missing client error responses");
                 }
-                if (responses != null && !documentsGenericServerError(responses)) {
+                if (responses != null && !documentsProblem(responses, "500")) {
                     undocumented.add(name + ": missing generic 500 ProblemDetail response");
+                }
+                if (isPublic(operation)) {
+                    publicOperations.add(name);
+                } else if (responses != null
+                        && !(documentsProblem(responses, "401") && documentsProblem(responses, "403"))) {
+                    undocumented.add(name + ": missing 401/403 ProblemDetail responses");
                 }
             }
         }
 
         assertThat(spec.at("/components/schemas/ProblemDetail").isObject()).isTrue();
+        assertThat(spec.at("/components/securitySchemes/bearerAuth/type").asString("")).isEqualTo("http");
+        assertThat(spec.at("/components/securitySchemes/bearerAuth/scheme").asString("")).isEqualTo("bearer");
+        assertThat(spec.at("/security/0/bearerAuth").isArray()).isTrue();
+        // The token operation is the only public one; Swagger/OpenAPI itself is not documented as public
+        assertThat(publicOperations).containsExactly("POST /api/auth/token");
         assertThat(paths.propertyNames()).allMatch(path -> path.startsWith("/api/"));
         assertThat(operations).isPositive();
         assertThat(undocumented).isEmpty();
@@ -116,9 +144,15 @@ class OpenApiDocumentationTest {
         return responses.propertyNames().stream().anyMatch(code -> code.startsWith(statusClass));
     }
 
-    // Every operation can fail unexpectedly; GlobalExceptionHandler answers with a ProblemDetail
-    private static boolean documentsGenericServerError(JsonNode responses) {
-        return PROBLEM_DETAIL_REF.equals(responses.at("/500/content/application~1problem+json/schema/$ref").asString(""));
+    // Error responses (401, 403, 500) are documented as ProblemDetail documents
+    private static boolean documentsProblem(JsonNode responses, String status) {
+        return PROBLEM_DETAIL_REF.equals(
+                responses.at("/" + status + "/content/application~1problem+json/schema/$ref").asString(""));
+    }
+
+    // An explicit empty security list marks a public operation
+    private static boolean isPublic(JsonNode operation) {
+        return operation.has("security") && operation.get("security").isEmpty();
     }
 
     // Operations without parameters or body (plain listings) cannot fail because of client input

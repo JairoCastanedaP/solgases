@@ -801,27 +801,494 @@ Proteger la API con Spring Security, autenticación mediante JWT y autorización
 ### Alcance
 
 - Incorporar Spring Security únicamente en `infrastructure`; mantener las políticas y puertos de aplicación independientes de tipos del framework.
-- Implementar autenticación JWT para usuarios internos. El modelo `User` no almacenará credenciales; la estrategia de credenciales y su persistencia deben definirse separadamente y revisarse antes de implementarse.
+- Implementar autenticación local con nombre de usuario y contraseña para usuarios internos. La contraseña y su hash se almacenarán en una entidad/tabla de credenciales separada; `domain.User` no almacenará credenciales. No habrá registro público ni recuperación automática de contraseña en este incremento.
+- Almacenar contraseñas con Argon2id, usando como mínimo la configuración recomendada por OWASP (19 MiB de memoria, 2 iteraciones y paralelismo 1), y ajustar/verificar el costo en el entorno objetivo. Nunca guardar contraseñas en claro ni usar hashes rápidos como SHA-256.
 - Aplicar denegación por defecto y proteger explícitamente rutas y operaciones mediante una matriz de políticas aprobada.
 - Resolver autoridades a partir de permisos con claves internas estables; no basar políticas duraderas en nombres editables de roles ni códigos editables de permisos.
-- Impedir autenticación de usuarios inactivos y definir cómo se reflejan desactivaciones, cambios de roles/permisos y tokens emitidos.
+- Impedir autenticación de usuarios inactivos. Usar JWT firmado con HS256 y una clave externa al repositorio, con access token de 15 minutos y sin refresh tokens en este incremento. No incluir roles/permisos en el token como fuente de autorización: consultar el estado del usuario y sus permisos actuales en cada solicitud protegida para que desactivaciones y cambios de permisos tengan efecto inmediato.
 - Proteger secretos de firma y credenciales mediante configuración externa; no guardar secretos en el repositorio, imágenes Docker, logs ni colección Postman.
 - Responder los errores de autenticación (401) y autorización (403) con el formato estándar de errores del proyecto, `ProblemDetail` (`application/problem+json`), definido en §9.
 - Añadir pruebas de autenticación/autorización, expiración y rechazo de JWT inválidos, usuario inactivo, acceso anónimo, concesiones y denegaciones.
-- Revisar dependencias y resultados de análisis de vulnerabilidades; usar IA para apoyar el triage, sin aceptar ni aplicar automáticamente cambios de seguridad sin revisión.
-- Configurar CORS solo cuando se conozcan los orígenes de los clientes que se autorizarán.
+- Analizar dependencias con OWASP Dependency-Check para Maven, usando NVD como fuente y manteniendo cualquier API key fuera del repositorio. Un hallazgo crítico (CVSS 9.0–10.0) bloquea el cierre; los hallazgos altos (CVSS 7.0–8.9) requieren triage y remediación o excepción justificada y aprobada. No aplicar actualizaciones de dependencias automáticamente. Usar IA solo como apoyo al triage.
+- Mantener CORS deshabilitado hasta conocer los orígenes concretos de los clientes autorizados.
 
-### Decisiones pendientes antes de cerrar el diseño
+### Decisiones aprobadas y pendientes
 
-- Credenciales: autenticación local o proveedor externo; política de contraseña, almacenamiento/hash y recuperación. No agregar la contraseña a `domain.User`.
-- Rutas públicas y protegidas, matriz endpoint–permiso, roles/permisos reales y catálogo semilla, que sigue pendiente del negocio.
-- Algoritmo/gestión de claves de firma, emisor/audiencia, duración de access token, claims y estrategia de rotación.
-- Si habrá refresh tokens, revocación, invalidación inmediata al desactivar/cambiar permisos y CORS. No implementar refresh tokens por defecto.
-- Herramienta/edición para análisis de dependencias y vulnerabilidades, fuentes de datos, credenciales de acceso y criterios de aceptación de hallazgos. Esta decisión se toma en este incremento; no bloquea el Incremento 6.
+- **Aprobadas:** credenciales locales separadas de `domain.User`; Argon2id; sin registro público ni recuperación automática; JWT HS256 de 15 minutos sin refresh tokens; estado y permisos consultados en cada solicitud protegida; OWASP Dependency-Check/Maven con NVD; críticos bloqueantes y altos sujetos a triage, remediación o excepción aprobada; CORS deshabilitado hasta definir orígenes.
+- *Antecedente histórico (anterior a las decisiones del 2026-10-08).* **Pendientes de negocio:** catálogo real de roles y permisos, matriz endpoint–permiso y mecanismo operativo para habilitar el primer usuario administrador. No inventar roles/permisos ni exponer una ruta pública de alta administrativa. Mientras sigan pendientes, no habilitar usuarios reales ni declarar completa la autorización funcional.
+- **Pendiente:** orígenes CORS, hasta que se conozcan los clientes que consumirán la API.
+- *Antecedente histórico (anterior a las decisiones del 2026-10-08).* La API solo expondrá como pública la operación de autenticación aprobada; las demás rutas exigirán autenticación y autorización por defecto. Swagger/OpenAPI conserva la disponibilidad establecida por perfiles, pero no constituye una excepción pública a la política de seguridad.
+- **Aprobadas el 2026-10-08 (sustituyen a los dos puntos anteriores):**
+  - catálogo inicial de roles y permisos;
+  - matriz endpoint–permiso de las operaciones actuales;
+  - comando local para crear el primer administrador y provisionar credenciales;
+  - rutas de Swagger UI y OpenAPI públicas en `local`, `dev` y `qa` y desactivadas en `prd`; las rutas de negocio siguen protegidas y deniegan por defecto;
+  - aceptación temporal de los dos hallazgos bajos de DOMPurify;
+  - límite de intentos aplazado;
+  - política de `username` que no distingue mayúsculas ni acentos.
+
+  El detalle está en «Catálogo, matriz y credenciales».
+- **Fuera de alcance de este incremento:** ruta pública de alta, API administrativa de credenciales, cambio de contraseña y rol `INVENTORY_OPERATOR`, este último pendiente de definición del negocio.
+- **Aceptadas el 2026-10-08 para el cierre del Checkpoint 7, solo para uso local:**
+  - el riesgo de que el último administrador pueda desactivarse o perder el rol `ADMIN`;
+  - los riesgos residuales listados en «Pendientes y limitaciones»;
+  - que los errores del comando local de credenciales puedan incluir el nombre de usuario introducido.
+
+  Antes de exponer o desplegar la API fuera del entorno local hay que revisar y resolver esos riesgos, además del límite de intentos de autenticación. La revisión humana final se hará al cierre del MVP y no es requisito para cerrar este checkpoint.
 
 ### Checkpoint 7
 
-La autenticación y las políticas aprobadas se verifican con pruebas positivas y negativas; rutas no declaradas públicas requieren autenticación; usuario inactivo y permisos insuficientes son rechazados; secretos no aparecen en código ni logs; el análisis de dependencias/vulnerabilidades se ejecuta y sus excepciones quedan documentadas. No habilitar despliegues no locales hasta superar este checkpoint y aprobar el riesgo residual.
+La autenticación y las políticas aprobadas se verifican con pruebas positivas y negativas; rutas no declaradas públicas requieren autenticación; usuario inactivo y permisos insuficientes son rechazados; secretos no aparecen en código ni logs; el análisis de dependencias se ejecuta y sus hallazgos críticos se resuelven, mientras que los altos se remedian o reciben una excepción aprobada. Para cerrar la autorización funcional deben estar aprobados el catálogo real, la matriz endpoint–permiso y el aprovisionamiento inicial de administrador. No habilitar despliegues no locales hasta superar este checkpoint y aprobar el riesgo residual.
+
+### Estado del Incremento 7
+
+**Estado: Checkpoint 7 cerrado para el alcance local (2026-10-08).** Se cumplen las condiciones del checkpoint:
+- autenticación y políticas verificadas con pruebas automatizadas positivas y negativas, y con pruebas manuales locales con usuarios reales (ver «Pruebas manuales locales y cierre del Checkpoint 7»);
+- rutas no públicas que exigen autenticación;
+- usuarios inactivos y permisos insuficientes rechazados;
+- secretos ausentes del código y de los logs;
+- análisis de dependencias con 0 críticos y 0 altos;
+- catálogo, matriz y aprovisionamiento del primer administrador aprobados y ejecutados;
+- riesgo residual aprobado para uso local.
+
+**No se habilitan despliegues ni exposición fuera del entorno local** hasta resolver los bloqueos indicados en «Pendientes y limitaciones». La revisión humana final queda para el cierre del MVP. Todo el trabajo del incremento sigue pendiente de confirmar en Git por el responsable.
+
+*Antecedente histórico:* hasta las pruebas manuales del 2026-10-08, el checkpoint seguía abierto por la creación del primer administrador, la prueba del 403 con un usuario real y la revisión humana, entonces requerida para el cierre.
+
+*Antecedente histórico:* hasta el 2026-10-08 la autorización funcional estaba bloqueada por el catálogo, la matriz y el aprovisionamiento del primer administrador, entonces pendientes de negocio.
+
+**Implementado**
+
+- **Spring Security solo en `infrastructure`** (`com.solgases.infrastructure.security`). La capa de aplicación define puertos y casos de uso sin tipos de Spring Security: `AuthenticateUserUseCase`, `GetUserAccessUseCase`, `CredentialPersistencePort` y `PasswordHashVerifier`. El dominio no cambia.
+- **Credenciales locales separadas:** entidad `UserCredentialJpaEntity`, tabla `tbl_user_credential` (`user_id` como clave primaria y FK `fk_user_credential_user` hacia `tbl_user`, `password_hash`, `created_at`, `updated_at`). `domain.User` no almacena credenciales. No hay registro público, recuperación de contraseña ni ninguna operación REST para crear o cambiar credenciales.
+- **Argon2id:** `Argon2PasswordEncoder` de Spring Security con sal de 16 bytes, hash de 32 bytes y los parámetros mínimos de OWASP (19 MiB = 19456 KiB, 2 iteraciones, paralelismo 1), configurables en `solgases.security.argon2.*`. La aplicación no arranca con valores inferiores. Medición en la máquina de desarrollo local: unos 32 ms por hash; el ajuste en el entorno objetivo queda para el Incremento 8. La implementación requiere `org.bouncycastle:bcprov-jdk18on` (`1.86`), que Spring Security usa para Argon2 y Spring Boot no gestiona.
+- **Autenticación:** `POST /api/auth/token`, la única operación pública. Usuario desconocido, contraseña incorrecta, usuario inactivo o sin credencial reciben el mismo 401 («Invalid username or password»); para un usuario desconocido se realiza una verificación Argon2 equivalente, para no revelar su existencia por el tiempo de respuesta.
+- **JWT HS256:** token de acceso de 15 minutos sin refresh token, firmado con la clave de `solgases.security.jwt.secret` (variable `JWT_SECRET`, Base64, al menos 256 bits). La aplicación no arranca sin clave, con una clave mal codificada o demasiado corta, y el mensaje nunca la muestra. El token solo contiene `sub` (id del usuario), `iat` y `exp`: no incluye roles ni permisos.
+- **Estado y permisos en cada solicitud:** `CurrentUserAuthenticationConverter` consulta el usuario en cada solicitud protegida; un usuario inactivo o inexistente recibe 401, y las autoridades son las claves internas estables de sus permisos actuales. Las desactivaciones y los cambios de permisos se aplican a la solicitud siguiente.
+- **Denegación por defecto:** `PermissionMatrixAuthorizationManager` concede una solicitud solo si la primera regla de la matriz que coincide exige una clave de permiso que el usuario tiene; lo que no está en la matriz se deniega. Swagger/OpenAPI (`/v3/api-docs`, `/v3/api-docs/**`, `/swagger-ui.html`, `/swagger-ui/**`) es público solo con `GET` y solo donde springdoc lo habilita (`local`, `dev` y `qa`); en `prd` está desactivado y esas rutas responden 401. *Antecedente histórico:* antes del 2026-10-08 Swagger requería autenticación y permiso. Solo se permite sin autenticación el despacho interno de errores (`DispatcherType.ERROR`); una solicitud directa a `/error` sigue denegada.
+- **401 y 403 en `ProblemDetail`** (`application/problem+json`, §9), con mensajes genéricos que no repiten tokens ni causas. El 401 incluye `WWW-Authenticate: Bearer`. `GlobalExceptionHandler` traduce además `AuthenticationException` y `AccessDeniedException` lanzadas dentro de controladores a 401/403, para que no acaben como 500.
+- **CORS deshabilitado** y sin configuración de orígenes. CSRF deshabilitado porque la API no usa cookies ni sesiones (política `STATELESS`).
+- **OpenAPI y Postman:** esquema `bearerAuth` global; las operaciones protegidas documentan 401/403 y la de token se marca como pública. La colección regenerada usa autenticación Bearer con la variable `accessToken`, vacía en el environment; el ejemplo del cuerpo de login usa `<password>` como marcador.
+- **OWASP Dependency-Check** `12.2.2` en `pluginManagement`, con NVD como fuente, `failBuildOnCVSS = 9` (los críticos bloquean), clave de NVD leída de la variable de entorno `NVD_API_KEY` y excepciones aprobadas en `dependency-check-suppressions.xml` (vacío). No se aplican actualizaciones automáticas. La versión `13.0.0` existe, pero no tenía notas de versión publicadas al consultarla, por lo que se fijó `12.2.2`.
+
+**Catálogo, matriz y credenciales (aprobado e implementado el 2026-10-08)**
+
+- **Permisos de negocio** (`InitialRolePermissionCatalog`): `CATALOG_READ`, `CATALOG_WRITE`, `INVENTORY_READ`, `INVENTORY_MOVE`, `INVENTORY_ADJUST`, `USER_READ`, `USER_WRITE`, `ACCESS_READ` y `ACCESS_WRITE`. Son nueve: lectura y escritura por área, con movimientos y ajustes de inventario separados.
+  - Al crearse, el código de cada permiso y el nombre de cada rol coinciden con su clave interna. Ambos se pueden editar después; la clave no cambia.
+  - **Corrección:** la propuesta previa a la aprobación hablaba de «11 permisos», pero enumeraba 10 (los nueve de negocio más `API_DOCS_READ`). `API_DOCS_READ` se descartó al decidir que la documentación es pública por perfil. El catálogo aprobado tiene **9 permisos de negocio**.
+- **Roles**, cargados de forma idempotente al arrancar, antes de cualquier otro *runner*:
+  - **`ADMIN`:** los nueve permisos. Es el único rol con `USER_WRITE` y `ACCESS_WRITE`.
+  - **`VIEWER`:** `CATALOG_READ` e `INVENTORY_READ`.
+  - Como establece el Incremento 5, un rol recibe sus permisos semilla solo cuando se crea; si ya existe, no se modifica.
+  - No se añade `INVENTORY_OPERATOR`.
+- **Matriz** (`EndpointPermissionMatrixConfiguration`, 38 operaciones protegidas, solo patrones exactos):
+
+  | Operaciones | Permiso |
+  |---|---|
+  | `GET` de listado y detalle en `/api/categories`, `/api/units-of-measure` y `/api/products` | `CATALOG_READ` |
+  | `POST`, `PUT /{id}`, `PATCH /{id}/activate` y `/{id}/deactivate` de esos tres recursos | `CATALOG_WRITE` |
+  | `GET /api/products/{productId}/inventory`, `…/movements` y `…/movements/{movementId}` | `INVENTORY_READ` |
+  | `POST …/inventory/entries` y `…/inventory/exits` | `INVENTORY_MOVE` |
+  | `POST …/inventory/adjustments` | `INVENTORY_ADJUST` |
+  | `GET /api/users` y `/api/users/{id}` | `USER_READ` |
+  | `POST /api/users`, `PUT /{id}`, `PATCH /{id}/activate` y `/{id}/deactivate` | `USER_WRITE` |
+  | `GET` de listado y detalle en `/api/roles` y `/api/permissions` | `ACCESS_READ` |
+  | `POST` y `PUT /{id}` de roles y permisos | `ACCESS_WRITE` |
+  | `POST /api/auth/token` | Pública (fuera de la matriz) |
+  | Swagger UI y OpenAPI | Públicas por perfil (fuera de la matriz) |
+  | Cualquier otra ruta o método | Denegada |
+- **Comando local de credenciales** (`com.solgases.infrastructure.cli`), siempre sin servidor web:
+  - **`create-first-admin`:** crea un usuario activo con el rol `ADMIN` y su credencial. Se niega si ya existe un usuario **activo** con `ADMIN`.
+  - **`provision-credential`:** guarda la primera credencial de un usuario existente que no la tenga. **Nunca sobrescribe** una credencial existente; informa de que hace falta un flujo de cambio de contraseña, que no existe.
+  - **Contraseña:** se lee dos veces del terminal sin mostrarla (`Console.readPassword`), nunca por argumentos, propiedades ni variables de entorno. Solo se guarda el hash Argon2id y las copias en memoria se borran al terminar.
+  - **Logs:** registran el id del usuario, nunca el `username` ni la contraseña.
+  - **Sin credenciales predeterminadas** y sin ruta REST de alta.
+  - *Antecedente:* al implementarse solo se probó con datos sintéticos en H2. **Actualización (2026-10-08):** se ejecutó de forma autorizada contra la base local para crear el administrador inicial y la credencial de `viewer-test` (ver «Pruebas manuales locales y cierre del Checkpoint 7»).
+- **Corrección del modo sin servidor web (2026-10-08):**
+  - **Incidente:** el primer intento manual de `create-first-admin` contra la base local falló al arrancar el contexto, porque `SecurityConfiguration` exigía un bean `HttpSecurity`, que Spring Security solo ofrece en aplicaciones web servlet.
+  - **Estado de la base tras el fallo** (verificado en solo lectura): sin cambios respecto al estado documentado tras el corte, con 11 tablas y 0 usuarios, credenciales, roles y permisos. El esquema coincide en todos los tipos del inventario.
+  - **Corrección:**
+    - `SecurityConfiguration` solo se carga en la aplicación web servlet (`@ConditionalOnWebApplication`);
+    - el registro de `SecurityProperties` pasó a `SecurityPropertiesConfiguration`, activa en ambos modos, porque el comando necesita Argon2id y la clave JWT;
+    - `SolgasesApplication.application(args)` decide el tipo de aplicación.
+
+    La invocación del comando no cambia.
+  - **Prueba:** `CredentialCommandStartupTest` arranca la aplicación completa sin servidor web, con las propiedades del comando, H2 y una petición de contraseña simulada. Comprueba que no hay servidor web ni `SecurityFilterChain`, que el catálogo se carga antes del comando y que se crea un único administrador activo con credencial Argon2id que autentica. Antes de corregir reproducía el mismo error.
+  - `mvn -B clean verify`: `BUILD SUCCESS` con **468 pruebas** (11 + 103 + 354).
+- **Política de contraseñas (aprobada e implementada el 2026-10-08)** (`PasswordPolicy`, capa de aplicación):
+  - **Longitud:** mínimo 15 y máximo 128 caracteres, contados como **puntos de código Unicode** y no como unidades UTF-16. Un carácter fuera del plano básico, como un emoji, cuenta como 1.
+  - **Contenido:** se admite cualquier carácter, espacios y Unicode incluidos, sin reglas de composición. El valor se usa exactamente como se introdujo, sin recortarlo, normalizarlo ni truncarlo.
+  - **Contraseñas nuevas** (`create-first-admin` y `provision-credential`): si la longitud no cumple, se rechaza antes de calcular Argon2id y sin escribir nada. El mensaje solo indica los límites, nunca el valor. La petición y la confirmación siguen siendo interactivas y ocultas, nunca se aceptan por argumentos, propiedades ni variables de entorno, no se registran en los logs y los buffers del comando se borran al terminar, también cuando falla.
+  - **Autenticación:** una contraseña de más de 128 puntos de código recibe el mismo 401 genérico («Invalid username or password»), sin consultar la base ni calcular Argon2. El mínimo no se aplica al iniciar sesión.
+  - **Cambio de validación en el login:** el campo `password` de `POST /api/auth/token` pasó de `@NotBlank` a `@NotEmpty`. Una contraseña formada solo por espacios es válida según la política, y con `@NotBlank` habría recibido 400. Una contraseña vacía sigue dando 400.
+  - **Limitación:** el borrado de buffers cubre los arrays de caracteres del comando. La librería de hashing y la petición REST, cuya contraseña llega como `String` inmutable, generan copias internas que el proyecto no puede borrar.
+  - **Pruebas:**
+    - límites de 14, 15, 64, 128 y 129 caracteres, en ASCII y con caracteres de dos unidades UTF-16;
+    - espacios y Unicode, conservados tal cual (una variante recortada no autentica);
+    - confirmación distinta;
+    - rechazo antes del hash y sin escrituras;
+    - 401 genérico con 129 caracteres, 129 emojis y 100.000 caracteres;
+    - inicio de sesión válido con una contraseña de 15 espacios.
+
+    `mvn -B clean verify`: `BUILD SUCCESS` con **465 pruebas** (11 + 103 + 351), sin fallos.
+- **Pruebas añadidas:**
+  - catálogo;
+  - las 38 parejas operación–permiso, más la denegación por defecto y las peticiones sin autenticar;
+  - cobertura de todas las operaciones REST reales con la aplicación en marcha;
+  - carga idempotente;
+  - Swagger por perfil (`local`, `dev`, `qa` y `prd`);
+  - casos de uso y comando de credenciales: creación, rechazo del segundo administrador, administrador inactivo, provisión sin sobrescritura, confirmación distinta, argumentos obligatorios, rechazo con servidor web y borrado de la contraseña.
+
+  `mvn -B clean verify`: `BUILD SUCCESS` con 441 pruebas (11 + 83 + 347), sin fallos. Con la política de contraseñas son 465.
+- **DOMPurify (aceptación temporal):** se aceptan GHSA-6688-9rhm-gjv2 y GHSA-p98j-92pf-mc4p (bajos, DOMPurify 3.4.13 dentro de `swagger-ui` 5.32.14), sin supresión ni parche del bundle.
+  - **Alcance:** Swagger UI pública en `local`, `dev` y `qa`, y desactivada en `prd`. QA seguirá restringido a la red del equipo.
+  - **Revisión:** cuando se publique un WebJar de `swagger-ui` con DOMPurify 3.4.16 o posterior. A 2026-10-08, el último WebJar (5.33.1) y `swagger-ui` 5.33.1 en npm siguen incluyendo la 3.4.13.
+- **Límite de intentos de autenticación:** aplazado a un incremento posterior. **Debe resolverse antes de exponer la API fuera del entorno local.**
+- **`username`:** se mantiene que no distinga mayúsculas ni acentos. La colación real de `tbl_user.username` en la base local es `utf8mb4_0900_ai_ci`, con índice único (consulta de solo lectura, 2026-10-08). No se alteró el esquema.
+
+**Pruebas manuales locales y cierre del Checkpoint 7 (2026-10-08)**, con la base MySQL 8.4.12 local y la aplicación con el perfil `local`. Las contraseñas se introdujeron siempre de forma oculta y los tokens solo existieron en memoria; ni unas ni otros se imprimieron, guardaron o registraron:
+
+| Paso | Resultado |
+|---|---|
+| Creación del administrador inicial con `create-first-admin`, tras corregir el modo sin servidor web | Correcta. Se cargó el catálogo: 9 permisos y 2 roles (`ADMIN` con 9 permisos, `VIEWER` con 2). Queda 1 usuario activo con `ADMIN` y 1 credencial Argon2id con parámetros m=19456, t=2, p=1 |
+| Login del administrador | 200 |
+| `GET /api/roles`, `/api/permissions`, `/api/categories` y `/api/users` con token de administrador | 200 en todas |
+| `GET /api/roles` sin token | 401 |
+| Usuario de prueba `viewer-test` | Creado activo mediante `POST /api/users` con el rol `VIEWER`; credencial con `provision-credential` |
+| Login de `viewer-test` | 200 |
+| `GET /api/categories` y `/api/products` con token de `viewer-test` | 200 |
+| `GET /api/users` y `/api/roles` con token de `viewer-test` | **403** |
+| Recuentos antes de desactivar `viewer-test` | 2 usuarios activos, 2 credenciales, 1 administrador activo y 1 usuario activo con `VIEWER` |
+| Desactivación de `viewer-test` con `PATCH /api/users/{id}/deactivate` (administrador) | 200, `active = false`. Se conserva como evidencia de prueba |
+| **Recuentos finales** (solo lectura) | 2 usuarios: 1 activo, el administrador, y 1 inactivo, `viewer-test`, que conserva su rol `VIEWER` y su credencial. 2 credenciales, 9 permisos, 2 roles, 1 administrador activo, 0 usuarios activos con `VIEWER`; 11 tablas sin cambios de esquema |
+
+Después de cada prueba la aplicación se detuvo de forma ordenada: «Graceful shutdown complete», sin líneas `ERROR` ni `WARN` y sin tokens en el log. Los scripts y logs temporales, que estaban fuera del repositorio, se borraron. La última ejecución de `mvn -B clean verify` sobre el código vigente terminó con `BUILD SUCCESS` y 468 pruebas; después no se cambió código.
+
+**Comandos**
+
+```bash
+# Compilación y pruebas (incluidas las de seguridad con H2)
+mvn -B clean verify
+
+# Análisis de dependencias (NVD). La clave se toma de NVD_API_KEY en el entorno; sin clave la descarga es muy lenta
+mvn -B compile org.owasp:dependency-check-maven:aggregate
+
+# Comandos locales de credenciales (requieren autorización expresa antes de ejecutarlos contra una base real).
+# Se ejecutan desde la raíz del repositorio con el perfil local (.env); arrancan sin servidor web, piden la
+# contraseña dos veces sin mostrarla y terminan. <username> y <nombre visible> son marcadores.
+java -jar infrastructure/target/infrastructure-0.0.1-SNAPSHOT.jar --spring.profiles.active=local \
+  --solgases.credentials.command=create-first-admin \
+  --solgases.credentials.username='<username>' --solgases.credentials.display-name='<nombre visible>'
+java -jar infrastructure/target/infrastructure-0.0.1-SNAPSHOT.jar --spring.profiles.active=local \
+  --solgases.credentials.command=provision-credential --solgases.credentials.username='<username>'
+```
+
+El informe se genera en `target/dependency-check-report.html` y `.json` (no versionados).
+
+**Estado vigente de base de datos y dependencias (tras el corte local del 2026-10-08):**
+
+- **Base de datos local:** `solgases-mysql` funciona con Oracle MySQL 8.4.12 (imagen fijada por digest), publicado solo en `127.0.0.1:3307` y con el volumen `solgases-mysql84-data`. El volumen MySQL 8.0 se conserva intacto y desconectado como copia de reversión. El detalle está en «Resultado del corte local».
+- **Dependencias fijadas en el `pom.xml` raíz:** Connector/J `26.7.0` (`mysql.version`, que sustituye a la 9.7.0 gestionada por Spring Boot) y Tomcat `11.0.26` (`tomcat.version`).
+- **Pruebas:** `mvn -B clean verify` termina con `BUILD SUCCESS` y 468 pruebas aprobadas (11 + 103 + 354), sin fallos, errores ni omitidas, tras corregir el modo sin servidor web del comando. Con la política de contraseñas eran 465 (11 + 103 + 351). Antes eran 441 (11 + 83 + 347), con el catálogo, la matriz y el comando de credenciales, y tras el corte 327 (11 + 75 + 241).
+- **Dependency-Check** (última ejecución tras el corte, con la base NVD actualizada): 68 dependencias, 0 críticos, 0 altos, 0 medios y 2 bajos. Los dos bajos son GHSA-6688-9rhm-gjv2 y GHSA-p98j-92pf-mc4p, de DOMPurify incluido en `swagger-ui` 5.32.14. Connector/J 26.7.0 no tiene hallazgos y no hay supresiones. OSS Index no se consultó por falta de credenciales.
+- **Checkpoint 7:** cerrado para el alcance local el 2026-10-08, con pruebas manuales de administrador y `VIEWER` (200, 401 y 403 según lo esperado), el riesgo residual aceptado solo para uso local y la revisión humana final aplazada al cierre del MVP. No se habilita ningún despliegue fuera de local.
+
+  Los hallazgos altos de Connector/J 9.7.0 ya no aplican.
+
+Los párrafos marcados como *antecedente histórico* se conservan por trazabilidad: describen análisis y evaluaciones anteriores al corte.
+
+*Antecedente histórico (anterior al corte del 2026-10-08; no refleja el estado vigente).* **Resultado del primer análisis de dependencias (2026-10-08):** OWASP Dependency-Check 12.2.2 examinó 68 dependencias tras descargar la base NVD inicial sin API key; tardó aproximadamente 2 h 38 min. Maven terminó con `BUILD FAILURE` y código 1 por `failBuildOnCVSS = 9`. Al contar identificadores únicos, el JSON contiene 17 hallazgos: 4 críticos, 7 altos, 4 medios y 2 bajos. El resumen de texto tenía 19 entradas porque los dos avisos GHSA aparecen duplicados en dos bundles de Swagger UI. CVE-2026-65905 aparece una sola vez. Los informes se guardaron fuera de `target/` antes de limpiar el proyecto; los informes nuevos de `target/` no se versionan.
+
+*Antecedente histórico (anterior al corte del 2026-10-08; no refleja el estado vigente).* **Triage del primer análisis:** Dependency-Check reportó CVE-2026-65637 como crítico (CVSS 9.8), usando una métrica secundaria de CISA-ADP registrada en NVD; no hay métrica primaria de NIST. Apache clasifica su propio aviso como Moderate y señala la corrección en Tomcat 11.0.25. Esta diferencia refleja escalas/fuentes distintas, no una discrepancia en el identificador CVE. Apache también clasifica como Low o Important otros CVE de Tomcat que el análisis puntuó como críticos. No se añadieron supresiones. Los dos GHSA de DOMPurify son Low y afectan a la versión 3.4.13 incluida dentro de `swagger-ui` 5.32.14; el bundle utilizado por Swagger UI la carga. La inspección del bundle no encontró que se active la opción `IN_PLACE`; esto es una inferencia de inspección estática, no una prueba dinámica. Las versiones WebJar consultadas tampoco incluían la corrección DOMPurify 3.4.16. Swagger UI está protegido por autenticación y la matriz de permisos vacía, por lo que actualmente no es accesible a usuarios autenticados.
+
+**Remediación de Tomcat:** se fijó `tomcat.version` en `11.0.26` en el `pom.xml` raíz. La resolución efectiva confirmó `tomcat-embed-core`, `tomcat-embed-el` y `tomcat-embed-websocket` en 11.0.26. `mvn -B clean verify` terminó con `BUILD SUCCESS`: 327 pruebas, 0 fallos, 0 errores y 0 omitidas.
+
+*Antecedente histórico (anterior al corte del 2026-10-08; no refleja el estado vigente).* **Connector/J:** se probó la resolución de `26.7.0`, pero no se adoptó porque la tabla específica de compatibilidad del fabricante indica MySQL Server 8.4 o posterior, mientras el proyecto usa MySQL 8.0.46. La versión efectiva permanece en 9.7.0. El segundo análisis aún reporta en esa dependencia dos hallazgos altos (CVE-2026-60586, CVSS 7.7; CVE-2026-60623, CVSS 7.1) y dos medios (CVE-2026-60624 y CVE-2026-61082, CVSS 6.5). No se probó conexión real entre el proyecto y un servidor MySQL con Connector/J 26.7.0.
+
+*Antecedente histórico (anterior al corte del 2026-10-08; no refleja el estado vigente).* **Segundo análisis de dependencias (2026-10-08):** `mvn -B compile org.owasp:dependency-check-maven:aggregate` terminó con `BUILD SUCCESS` (código 0) y examinó 68 dependencias reutilizando la base NVD local, sin descargar una actualización nueva. Los hallazgos únicos bajaron de 17 a 6: 0 críticos, 2 altos, 2 medios y 2 bajos. Se resolvieron 11 hallazgos de Tomcat; no aparecieron hallazgos nuevos. Persisten los cuatro CVE de Connector/J indicados arriba y los dos GHSA bajos de DOMPurify. El analizador de Sonatype OSS Index estuvo deshabilitado por falta de credenciales; este resultado cubre NVD, no OSS Index. La base NVD usada se actualizó durante el primer análisis, aproximadamente a las 04:30 UTC del 2026-10-08. Los informes se conservaron solo como archivos locales y no deben incluirse en el repositorio.
+
+*Antecedente histórico (anterior al corte del 2026-10-08; no refleja el estado vigente).* **Estado del triage y decisiones pendientes:** el resultado satisface el criterio de cero hallazgos críticos, pero el Checkpoint 7 sigue abierto por los hallazgos altos de Connector/J. Debe decidirse entre actualizar MySQL a 8.4 o superior para poder evaluar Connector/J 26.7.0, probar otra versión compatible con MySQL 8.0 y repetir el análisis, o aprobar una excepción de riesgo documentada. No se aprobaron excepciones ni supresiones. Los GHSA bajos quedaron triageados como dependencias realmente empaquetadas, sin corrección compatible identificada en las versiones WebJar revisadas; su riesgo residual debe considerarse en el cierre. No se configuró clave NVD ni se mostraron secretos.
+
+*Antecedente histórico (anterior al corte del 2026-10-08; no refleja el estado vigente).* **Evaluación temporal de Connector/J 8.4.0 (2026-10-08), distinta del análisis de 9.7.0:** se evaluó 8.4.0 como candidato para MySQL Server 8.0.46 sin fijarlo en ningún POM; solo se usó la propiedad temporal `-Dmysql.version=8.4.0`. La versión efectiva del proyecto sigue siendo 9.7.0.
+
+- **Resolución:** `dependency:tree` con la propiedad temporal resolvió `com.mysql:mysql-connector-j:jar:8.4.0:runtime`.
+- **Compatibilidad oficial:** las notas de versión de Oracle de Connector/J 8.4.0 (2024-04-30) indican que «can be used against MySQL Server version 8.0 and later», por lo que declara compatibilidad con 8.0.46.
+- **Mantenimiento:** esas mismas notas la presentaban en su publicación como versión GA «recommended for use on production systems». Desde entonces Oracle no ha publicado versiones 8.4.x posteriores (8.4.0 es la única de la serie en las notas y en Maven Central), y la guía vigente de Connector/J solo documenta la serie 26.7. No se encontró una declaración oficial de que 8.4.0 siga mantenida.
+- **Avisos de seguridad:** el Critical Patch Update de Oracle de julio de 2026 lista CVE-2026-60586, CVE-2026-60623, CVE-2026-60624 y CVE-2026-61082 con «Supported Versions Affected: 9.7.0-9.7.1», y NVD registra solo 9.7.0 y 9.7.1 como configuraciones afectadas. El mismo aviso advierte que las versiones sin soporte Premier o Extended «are not tested for the presence of vulnerabilities» y que «it is likely that earlier versions of affected releases are also affected». Por tanto, que 8.4.0 no figure como afectada no demuestra que no lo esté.
+- **Pruebas:** `mvn -B -Dmysql.version=8.4.0 clean verify` terminó con `BUILD SUCCESS` y 327 pruebas sin fallos, errores ni omitidas. Esas pruebas usan H2 y no ejercitan el driver MySQL.
+- **Dependency-Check con la propiedad temporal:** `BUILD SUCCESS`, 68 dependencias; reutilizó la base NVD local sin actualizarla («Skipping the NVD API Update as it was completed within the last 240 minutes»), es decir, con los datos de la actualización del primer análisis del 2026-10-08. Hallazgos únicos: 0 críticos, 0 altos, 0 medios y 2 bajos (los GHSA de DOMPurify en Swagger UI). Los cuatro CVE de 9.7.0 no aparecen para 8.4.0, porque las fuentes solo listan 9.7.0–9.7.1 como afectadas; no es una verificación de que 8.4.0 esté libre de ellos. OSS Index siguió deshabilitado por falta de credenciales.
+- **Conexión con MySQL:** una comprobación JDBC de solo lectura con el driver 8.4.0 contra la instancia local dedicada del proyecto (`solgases-mysql`, MySQL 8.0.46) conectó correctamente en modo de solo lectura y consultó versiones y metadatos. El programa incluía además un intento de `CREATE TEMPORARY TABLE` para comprobar el modo de solo lectura; el propio driver lo rechazó antes de enviarlo al servidor (SQLState `S1009`), por lo que no se ejecutó ninguna escritura. No se probó la aplicación completa contra MySQL con 8.4.0.
+- **Conclusión:** 8.4.0 es compatible según Oracle con MySQL 8.0 y elimina los hallazgos del informe, pero no hay constancia de que siga mantenida ni de que esté libre de los CVE de 9.7.0, ya que Oracle no evalúa versiones sin soporte. No se adopta. La decisión sigue abierta entre: (a) mantener 9.7.0 con una excepción de riesgo aprobada para los dos altos; (b) actualizar MySQL a 8.4 o posterior y evaluar Connector/J 26.7.0; (c) adoptar 8.4.0 aceptando de forma explícita el riesgo de una versión sin mantenimiento confirmado y sin evaluación de Oracle frente a esos CVE.
+
+*Antecedente histórico (anterior al corte del 2026-10-08; no refleja el estado vigente).* **Evaluación temporal de MySQL 8.4.11 con Connector/J 26.7.0 (2026-10-08), distinta de los análisis de 9.7.0 y 8.4.0:** prueba aislada y reversible; no se actualizó la base existente ni se fijó 26.7.0 en ningún POM.
+
+- **Fuentes oficiales:** las notas de Oracle de Connector/J 26.7.0 (2026-07-29) la describen como «new GA release», que «supersedes 9.7 and is recommended for use on production systems» y que «can be used against MySQL Server version 8.4 and later»; no incluyen notas de seguridad. El Critical Patch Update de julio de 2026 marca MySQL Server 8.4.0–8.4.10 como afectado y los cuatro CVE de Connector/J en 9.7.0–9.7.1. Al volver a consultar NVD (última modificación de esos CVE: 2026-09-03), las configuraciones afectadas siguen siendo solo 9.7.0 y 9.7.1.
+- **Entorno temporal:** imagen oficial `mysql:8.4.11` fijada por digest (`sha256:6ea90827…`), la versión de parche más reciente con imagen oficial y posterior al rango afectado del CPU de julio (Oracle ya publicó 8.4.12, aún sin imagen oficial). Se usó un proyecto Compose exclusivo, el puerto `127.0.0.1:3318`, un volumen propio y credenciales temporales aleatorias en archivos con permisos restringidos fuera del repositorio. Una consulta de solo lectura confirmó `@@version = 8.4.11` (MySQL Community Server - GPL).
+- **Resolución:** `dependency:tree -Dmysql.version=26.7.0` resolvió `com.mysql:mysql-connector-j:jar:26.7.0:runtime`.
+- **Pruebas:** `mvn -B -Dmysql.version=26.7.0 clean verify` terminó con `BUILD SUCCESS` y 327 pruebas sin fallos, errores ni omitidas; usan H2, no el driver MySQL.
+- **Conexión JDBC de solo lectura:** el driver `mysql-connector-j-26.7.0` conectó con MySQL 8.4.11 en una sesión de solo lectura (`@@transaction_read_only = 1`) y con TLS 1.3. El programa solo ejecutó consultas.
+- **Arranque de la aplicación:** el jar construido con 26.7.0 arrancó con el perfil `dev` apuntando solo al MySQL temporal, desde un directorio sin `.env` y con credenciales y clave JWT temporales pasadas al proceso. Hibernate creó 11 tablas solo en esa base, sin filas de negocio; el log no tuvo líneas `WARN` ni `ERROR`, y la aplicación se detuvo de forma ordenada. No se ejecutaron operaciones REST ni escrituras de negocio.
+- **Dependency-Check con la propiedad temporal:** `BUILD SUCCESS`, 68 dependencias. Esta vez actualizó la base NVD local (2.077 registros nuevos, finalizada el 2026-10-08 a las 08:49). Hallazgos únicos: 0 críticos, 0 altos, 0 medios y 2 bajos (los GHSA de DOMPurify en Swagger UI). OSS Index siguió deshabilitado por falta de credenciales.
+- **Contraste con Oracle/NVD:** que los cuatro CVE no aparezcan es coherente con que Oracle y NVD solo listen 9.7.0–9.7.1 como afectadas y con que 26.7.0 sea la versión GA que sustituye a 9.7. Aun así, las notas de 26.7.0 no declaran explícitamente la corrección de esos CVE, por lo que el resultado no se registra como verificación positiva de que estén corregidos.
+- **Limpieza:** se eliminaron solo el contenedor, el volumen, la red y los archivos temporales de esta evaluación. La imagen `mysql:8.4.11` no se borró porque ya existía (mismo digest que la etiqueta `mysql:8.4`, usada por un contenedor de otro proyecto). La instancia `solgases-mysql` (MySQL 8.0.46) quedó idéntica a su estado previo: mismo contenedor, hora de arranque, imagen, volumen, puertos, versión y 10 tablas.
+- **Límites:** no se migraron datos ni se actualizó la base del proyecto; no se probaron operaciones de la API contra MySQL 8.4; las pruebas automáticas no ejercitan el driver; OSS Index no se consultó.
+- **Estado de la decisión:** MySQL 8.4.11 con Connector/J 26.7.0 es la ruta respaldada por Oracle para salir de la serie 9.7 afectada, y la prueba aislada fue satisfactoria. Adoptarla requiere actualizar MySQL del proyecto a 8.4, lo que necesita decisión y un plan de migración de datos, y no se ha aprobado. La versión efectiva permanece en 9.7.0, con sus dos hallazgos altos pendientes de decisión.
+
+**Imagen Oracle MySQL 8.4.12: privilegio `PROXY` de `root@%` y healthcheck de Compose (2026-10-08):** hallazgos de la validación desechable con la imagen `container-registry.oracle.com/mysql/community-server:8.4.12` (digest `sha256:7dcc4add…885be`). No se ha hecho el corte local ni se ha adoptado Connector/J 26.7.0; la instancia `solgases-mysql` (MySQL 8.0.46) no se modificó.
+
+- **Privilegio `PROXY` de `root@%`: observado solo en la prueba desechable; aceptado como comportamiento de la imagen y fuera de la configuración del corte.**
+  - **Hecho:** en la instancia 8.4.12 desechable, `root@'%'` tenía `GRANT PROXY ON ''@'' TO 'root'@'%' WITH GRANT OPTION`. En la instancia 8.0.46 desechable, creada con la imagen oficial `mysql:8.0` y restaurada desde el mismo volcado, ese privilegio solo lo tenía `root@localhost`.
+  - **Origen:** el script de entrada de la imagen de Oracle concede ese privilegio a la cuenta `root@${MYSQL_ROOT_HOST}`. Se comprobó en el `/entrypoint.sh` de la imagen 8.4.12 y en el `docker-entrypoint.sh` de 8.4 que Oracle publica en el repositorio `mysql/mysql-docker`.
+  - **Significado:** según la documentación de MySQL 8.4 sobre usuarios proxy, permite configurar usuarios proxy para cualquier cuenta y delegar esa capacidad en otras cuentas. `root@'%'` ya tiene `ALL ON *.* WITH GRANT OPTION`. Los usuarios proxy solo funcionan con autenticación PAM o Windows, o con los plugins obsoletos `mysql_native_password` y `sha256_password` si se activa `check_proxy_users`. Todas las cuentas inventariadas usan `caching_sha2_password`, que la documentación no incluye entre esos plugins. No se configuró ningún usuario proxy.
+  - **Condición de la prueba:** la instancia desechable definió `MYSQL_ROOT_HOST=%` para reproducir la cuenta `root@%` de la instancia original. Según la documentación de la imagen, sin esa variable solo se crea `root@'localhost'`. El privilegio observado corresponde, por tanto, a esa prueba.
+  - **Decisión (resuelta):** se acepta como comportamiento de la imagen Oracle en el entorno local. La aplicación no lo necesita: se conecta con su propio usuario, no con root. **La configuración propuesta para el corte omite `MYSQL_ROOT_HOST`**, así que no se crea `root@%` ni existirá ese privilegio adicional. No se aplica a QA ni a producción, cuya configuración de cuentas sigue pendiente.
+- **Healthcheck de Compose: prueba con el comando exacto del proyecto contra la imagen 8.4.12.**
+  - **Entorno:** instancia desechable propia, con su volumen, credenciales aleatorias temporales, sin puertos publicados y con la misma definición de healthcheck que `docker-compose.yml`: `mysqladmin ping -h localhost`, `interval` 10 s, `timeout` 5 s, `retries` 10. La validación anterior de 8.4.12 había usado otra variante, por TCP a `127.0.0.1`, que no es la del proyecto.
+  - **Qué comprueba:** `-h localhost` se conecta por el socket Unix y el comando no lleva credenciales. Según la documentación de `mysqladmin`, `ping` devuelve 0 si el servidor está en ejecución, «incluso en caso de un error como `Access denied`». En la prueba devolvió 0 con el servidor listo y la autenticación de root rechazada. La instancia original 8.0.46 muestra lo mismo en su historial de salud. Por tanto, `healthy` solo indica que un `mysqld` responde en el socket. No garantiza que las credenciales de la aplicación funcionen, que exista la base de datos ni que el puerto TCP esté disponible. El comando no usa la cuenta `healthchecker` ni `healthcheck.cnf`.
+  - **Durante la inicialización (volumen nuevo):** se ejecutó el mismo comando con `docker exec` cada 0,6 s aproximadamente, a la vez que se registraba el estado de Docker. Tiempos en UTC:
+
+    | Momento | Fase según el log | Resultado del comando | Estado Docker |
+    |---|---|---|---|
+    | 19:37:31,9–34,9 | `mysqld --initialize` en curso | código 1, sin servidor | `starting` |
+    | 19:37:35,4 | servidor temporal listo (`port: 0`, solo socket) | — | `starting` |
+    | 19:37:35,5–36,6 | servidor temporal; inicialización sin terminar | **código 0** (`mysqld is alive`) | `starting` |
+    | 19:37:37,2–37,8 | el servidor temporal se detiene | código 1 | `starting` |
+    | 19:37:37,9 | `MySQL init process done. Ready for start up.` | — | `starting` |
+    | 19:37:38,5 | servidor definitivo listo (`port: 3306`) | código 0 (`Access denied`) | `starting` |
+    | ≈19:37:42 | primer sondeo de Docker | código 0 | `healthy` |
+  - **Resultado durante la inicialización:** el comando del proyecto **sí devuelve éxito antes de que termine la inicialización**, mientras responde el servidor temporal. En esta ejecución Docker no marcó `healthy` antes de tiempo, porque su primer sondeo llegó unos 10 s después del arranque, cuando ya estaba el servidor definitivo; la ventana observada duró unos 1,2 s. No se probaron inicializaciones más largas, por ejemplo con scripts en `docker-entrypoint-initdb.d`, discos lentos o volcados grandes. En esos casos, que Docker marque `healthy` antes de tiempo no está descartado.
+  - **Reinicio con el volumen ya inicializado:** no hubo fase de inicialización y el servidor quedó listo en menos de 1 s. El comando devolvió 0 y Docker volvió a `healthy` en el primer sondeo, unos 10 s después.
+  - **Limitaciones:**
+    - una sola ejecución y en esta máquina;
+    - la fase del servidor se dedujo del log de la imagen;
+    - cada sondeo deja un intento fallido de autenticación de `root@localhost`. Las conexiones por socket no pasan por la caché de hosts ni cuentan para `max_connect_errors`.
+  - **Decisión (resuelta): se conserva el healthcheck actual**, `mysqladmin ping -h localhost`, sin cambios en `docker-compose.yml`.
+    - Su estado `healthy` solo confirma que MySQL responde por socket. No valida credenciales, base de datos ni disponibilidad TCP.
+    - La validación de un futuro corte a MySQL 8.4.12 deberá incluir una comprobación independiente de la conexión de la aplicación, sin depender del estado `healthy`.
+    - Resultado observado que se conserva: durante la inicialización, el comando sí respondió con éxito ante el servidor temporal. En la ventana de inicialización probada, Docker no llegó a marcar `healthy`. No se ha probado con inicializaciones más largas.
+
+Fuentes: [`mysqladmin`](https://dev.mysql.com/doc/refman/8.4/en/mysqladmin.html), [usuarios proxy](https://dev.mysql.com/doc/refman/8.4/en/proxy-users.html), [caché de hosts](https://dev.mysql.com/doc/refman/8.4/en/host-cache.html) y [`docker-entrypoint.sh` de MySQL 8.4 en `mysql/mysql-docker`](https://github.com/mysql/mysql-docker/blob/main/mysql-server/8.4/docker-entrypoint.sh).
+
+**Plan de corte local a MySQL 8.4.12 con Connector/J 26.7.0 (aprobado y ejecutado el 2026-10-08, hora local):** este plan recoge las decisiones aprobadas y se ejecutó tras la autorización expresa del corte. Los resultados observados están en «Resultado del corte local». El texto del plan se conserva como referencia para la reversión.
+
+- **Decisiones aprobadas (aplicadas en el corte):**
+  1. Omitir `MYSQL_ROOT_HOST`. Root solo existirá como `root@'localhost'`, sin `root@%` y sin el privilegio `PROXY` adicional.
+  2. Eliminar la cuenta `healthchecker@localhost` de la nueva instancia después de inicializarla y de verificar el servicio.
+  3. Publicar el puerto solo en `127.0.0.1`.
+  4. Conservar intacto y desconectado el volumen MySQL 8.0 (`solgases_solgases-mysql-data`) hasta validar el corte y cerrar el incremento. Su limpieza se decidirá aparte.
+  5. El Upgrade Checker ya evaluó específicamente 8.4.12 (ver «Ya comprobado»), así que no se repite.
+  6. Adoptar Connector/J 26.7.0 junto con el corte. La dependencia solo se cambia cuando se autorice ejecutar el corte. Según la [tabla oficial de compatibilidad de Connector/J](https://dev.mysql.com/doc/connector-j/en/connector-j-versions.html), la 26.7 admite MySQL 8.4 y posteriores; esa tabla no documenta la 9.7.0 con 8.4.
+  7. Conservar sin cambios el healthcheck `mysqladmin ping -h localhost`. Solo confirma que MySQL responde por socket, así que la conexión de la aplicación se valida por separado.
+- **Ya comprobado (2026-10-08), en instancias desechables:**
+  - **Upgrade Checker:** `util.checkForServerUpgrade` de MySQL Shell 26.7.1, desde la imagen Oracle 8.4.12 fijada por digest, contra la instancia 8.0.46. La salida indica «will now be checked for compatibility issues for upgrade to MySQL 8.4.12». Resultado:
+    - 0 errores;
+    - 24 advertencias de cambios de valores por defecto, que afectan al rendimiento y la replicación;
+    - 2 avisos de `SET_USER_ID` en cuentas root.
+
+    Ninguno es una condición de parada.
+  - **Respaldo y restauración:** el volcado lógico con `mysqldump` 8.0.46 se restauró sin errores en 8.0.46 y en 8.4.12. Esquema, datos, cuentas de la aplicación y sus permisos quedaron idénticos. Las diferencias de root fueron privilegios dinámicos propios de cada versión y el `PROXY` de la prueba con `MYSQL_ROOT_HOST=%`.
+  - **Aplicación con Connector/J 26.7.0** (solo con `-Dmysql.version=26.7.0`):
+    - `clean verify` con 327 pruebas sin fallos;
+    - arranque sin `ERROR` ni `WARN`, con creación de `tbl_user_credential`;
+    - persistencia sintética: 1062 por SKU duplicado y 1452 por FK inválida;
+    - REST: 401 y 403 en formato ProblemDetail;
+    - Dependency-Check sin hallazgos en el driver. NVD no se actualizó en esa ejecución y OSS Index estaba deshabilitado.
+  - **Cuenta `healthchecker`:** al eliminarla, la instancia siguió `healthy` y la cuenta no reapareció al reiniciar.
+  - **Sin `MYSQL_ROOT_HOST`:** la imagen inicializó correctamente y quedó `healthy` con el healthcheck del proyecto.
+- **No comprobado (pendiente):**
+  - una restauración completa y el arranque de la aplicación con la configuración exacta del corte, que no define `MYSQL_ROOT_HOST` y publica el puerto en loopback;
+  - la eliminación de `healthchecker` en una instancia permanente;
+  - la copia en frío del volumen 8.0;
+  - la reversión completa;
+  - el 403 con un usuario real, que no es posible mientras no se apruebe el aprovisionamiento del primer administrador.
+- **Precondiciones** (si falla alguna, no se empieza):
+  1. Autorización expresa del corte.
+  2. La aplicación local está detenida. Si está en marcha, se consulta antes de detenerla.
+  3. `solgases-mysql` está `healthy`. Se registran su id, imagen (`mysql:8.0`, `sha256:7dcddc01…`), volumen, puertos, versión 8.0.46 y número de tablas.
+  4. El digest de la imagen Oracle sigue siendo `sha256:7dcc4add…885be` y no hay avisos de Oracle nuevos que afecten a 8.4.12.
+  5. En `.env` existen `JWT_SECRET` y las variables `DB_*`. Solo se verifica que existen, sin leer ni mostrar su valor. `DB_HOST` debe apuntar al bucle local (`localhost` o `127.0.0.1`), porque el puerto solo se publicará en `127.0.0.1`; se comprueba sin mostrar el valor.
+  6. Ninguna herramienta local depende de entrar como root desde fuera del contenedor, porque después del corte no existirá `root@%`.
+  7. Directorio de trabajo fuera del repositorio, creado con `umask 077`. Los cambios de los POM y del resto de archivos del Incremento 7, aún sin commit, se conservan.
+- **Respaldo:**
+  1. **Inventario de referencia**, de solo lectura y como root dentro del contenedor: variables, esquema, columnas, índices, FK, restricciones y DDL normalizado; recuentos y hashes por tabla; cuentas con su plugin, roles y permisos. Los scripts de la validación se borraron, así que hay que volver a escribirlos con las mismas consultas.
+  2. **Volcado lógico final** con `mysqldump` 8.0.46 dentro del contenedor: `--single-transaction --skip-lock-tables --routines --triggers --events --set-gtid-purged=OFF --no-tablespaces --hex-blob`. Archivo con permisos `600` y su `sha256`.
+  3. **Copia en frío del volumen 8.0:** con el servidor ya detenido, un `tar` del volumen montado en solo lectura en un contenedor temporal. No se ha probado.
+- **Corte** (pasos futuros, no ejecutados):
+  1. `docker compose stop mysql`. **Nunca `down -v`.**
+  2. Cambios en `docker-compose.yml`. El healthcheck no cambia y no se añade `MYSQL_ROOT_HOST`:
+     ```yaml
+     image: container-registry.oracle.com/mysql/community-server:8.4.12@sha256:7dcc4add9183664de3a214daf85a50c3ba6cccfd7534f700b6561bf5b41885be
+     ports:
+       - "127.0.0.1:${DB_PORT:-3307}:3306"
+     volumes:
+       - solgases-mysql84-data:/var/lib/mysql
+     # top-level volumes: declare only solgases-mysql84-data; the 8.0 volume stays outside Compose, so down -v cannot delete it
+     ```
+  3. `docker compose up -d mysql`. Compose vuelve a crear el contenedor. La instancia 8.4 nunca monta el volumen 8.0: actualizarlo en el mismo volumen impediría volver a 8.0.
+  4. Esperar a `healthy`, que solo indica que MySQL responde por socket. Después, comprobar por separado la conexión TCP en `127.0.0.1:${DB_PORT}` con el usuario de la aplicación y `SELECT 1`, leyendo las credenciales dentro del contenedor.
+  5. Eliminar `healthchecker@localhost` y comprobar que la instancia sigue `healthy` y que la cuenta no reaparece tras reiniciar.
+  6. Restaurar el volcado final y compararlo con el inventario. Solo se aceptan las diferencias de privilegios dinámicos de root propias de 8.4. No debe aparecer `root@%` ni `PROXY` en `root@%`.
+  7. Cambiar `mysql.version` a `26.7.0` en `pom.xml`, editando solo esa línea. `dependency:tree` debe resolver la 26.7.0 y `mvn -B clean verify` debe terminar correctamente.
+- **Verificación posterior:**
+  - **Contenedor:**
+    - versión 8.4.12;
+    - puerto publicado solo en `127.0.0.1`;
+    - montado únicamente el volumen nuevo;
+    - el volumen 8.0 sigue existiendo y no está montado.
+  - **Cuentas:** solo `root@localhost` y el usuario de la aplicación con el plugin y los permisos esperados, sin `healthchecker`.
+  - **Aplicación** con el perfil `local`:
+    - arranca sin `ERROR`;
+    - `performance_schema.session_connect_attrs` muestra conexiones «MySQL Connector/J 26.7.0»;
+    - `tbl_user_credential` creada (InnoDB, `utf8mb4_0900_ai_ci`, con su FK).
+  - **Datos:** recuentos y hashes iguales al inventario, y colación `utf8mb4_0900_ai_ci` en `tbl_product.sku` y `tbl_unit_of_measure.code`.
+  - **Pruebas rápidas por REST, sin escrituras:** 401 sin token y 401 en `/api/auth/token` con un usuario desconocido, en `application/problem+json`.
+  - **Dependency-Check** con la dependencia definitiva, indicando si NVD se actualizó y si OSS Index está deshabilitado.
+- **Criterios de parada** (cualquiera lleva a la reversión):
+  - fallo del inventario, del volcado, del `sha256` o de la copia del volumen;
+  - la imagen no coincide con el digest;
+  - la instancia no llega a `healthy` o falla la comprobación independiente de conexión;
+  - tras eliminar `healthchecker`, la instancia deja de estar `healthy` o la cuenta reaparece;
+  - errores de restauración, o diferencias fuera de las aceptadas;
+  - aparece `root@%`;
+  - el puerto no queda limitado a `127.0.0.1`;
+  - falla `clean verify`, la aplicación arranca con `ERROR`, no conecta con la 26.7.0 o el REST responde distinto de lo esperado;
+  - cualquier conexión o escritura no prevista.
+- **Reversión:**
+  1. Detener la aplicación y ejecutar `docker compose stop mysql`. El volumen 8.4 se conserva para analizar la causa.
+  2. Restaurar en `docker-compose.yml` la imagen `mysql:8.0` (preferiblemente fijada a `sha256:7dcddc01…`), el volumen `solgases-mysql-data` y su declaración. El puerto en loopback puede conservarse; cualquier otro cambio de la configuración original requiere decisión.
+  3. Ejecutar `docker compose up -d mysql` y verificar 8.0.46, `healthy`, 10 tablas y la coincidencia con el inventario.
+  4. Quitar del `pom.xml` raíz solo la propiedad `<mysql.version>` (y su comentario), lo que devuelve la versión gestionada por Spring Boot (9.7.0). Conservar los demás cambios y no usar `git checkout`, porque se perderían los cambios del Incremento 7 aún sin commit.
+  5. Los datos escritos en 8.4 después del corte solo pueden pasarse a 8.0 con un volcado lógico, y solo si no usan funciones exclusivas de 8.4.
+  6. Si el volumen 8.0 estuviera dañado, último recurso: la copia en frío.
+  7. Ningún volumen se elimina sin una aprobación aparte.
+
+**Resultado del corte local (ejecutado el 2026-10-08 entre las 19:40 y las 19:50, hora local; 00:40–00:50 UTC del 2026-10-09):** solo la instancia local `solgases-mysql`; QA y producción no se tocaron. No se cumplió ningún criterio de parada y no hizo falta revertir.
+
+- **Precondiciones verificadas:**
+  - `JWT_SECRET` y las variables `DB_*` existen en `.env` (solo presencia) y `DB_HOST` apunta al bucle local;
+  - `.env` sigue ignorado y sin seguimiento;
+  - la aplicación estaba detenida;
+  - la instancia original estaba `healthy`: MySQL 8.0.46, imagen `sha256:7dcddc01…`, 10 tablas;
+  - la etiqueta Oracle `8.4.12` sigue apuntando a `sha256:7dcc4add…885be`;
+  - en el índice de avisos de Oracle no hay nada posterior al CSPU de septiembre de 2026 (rev. 1).
+- **Respaldo (verificado antes de modificar nada):**
+  - **Inventario de referencia:** 10 tablas, 53 columnas, 26 entradas de índice, 8 FK, 27 restricciones y 0 filas.
+  - **Volcado lógico:** `mysqldump` 8.0.46 terminó con código 0 y sin errores. 10.713 bytes, 10 `CREATE TABLE`, 0 `INSERT` (coherente con 0 filas); `sha256` registrado y verificado.
+  - **Copia en frío del volumen 8.0:** con el servidor detenido de forma ordenada, `tar` de 178 archivos regulares y 1 enlace simbólico (`mysql.sock`). `tar --compare` contra el volumen fue correcto y se guardaron el `sha256` de cada archivo y el de la copia. El inventario, el volcado y la copia están fuera del repositorio, con permisos restringidos.
+- **Corte:**
+  - **Compose:** `docker-compose.yml` cambió exactamente como dice el plan: imagen Oracle fijada por digest, puerto `127.0.0.1:${DB_PORT:-3307}:3306` y volumen nuevo `solgases-mysql84-data`. No se añadió `MYSQL_ROOT_HOST` y el healthcheck no cambió. El volumen 8.0 dejó de estar declarado en Compose.
+  - **Arranque:** `docker compose up -d mysql` recreó el contenedor, como estaba aprobado; el volumen 8.0 se conservó. Quedó `healthy` unos 24 s después; el servidor definitivo ya estaba listo antes.
+  - **Conexión autenticada por TCP**, comprobada aparte a través de `127.0.0.1:3307` con el usuario de la aplicación: `SELECT 1` correcto, versión 8.4.12, cuenta con host `%`, TLSv1.3.
+  - **`healthchecker`:** existía, sin ninguna conexión. `DROP USER` terminó con código 0. La instancia siguió `healthy` sin fallos, y tras reiniciarla volvió a `healthy` sin la cuenta y sin repetir la inicialización. No existe ninguna cuenta root distinta de `root@localhost`.
+  - **Restauración:** el `sha256` del volcado coincidió y la restauración terminó con código 0 y sin errores.
+  - **Comparación con el inventario:** idénticos variables, esquema, tablas, columnas, índices, FK, restricciones, *checks*, objetos, datos, DDL normalizado, roles y permisos del usuario de la aplicación. Las únicas diferencias son las aceptadas:
+    - falta `root@%`, por decisión;
+    - privilegios dinámicos de `root@localhost` propios de cada versión: `SET_USER_ID` solo en 8.0; `ALLOW_NONEXISTENT_DEFINER`, `FLUSH_PRIVILEGES`, `OPTIMIZE_LOCAL_TABLE`, `SET_ANY_DEFINER` y `TRANSACTION_GTID_TAG` solo en 8.4.
+
+    `PROXY` sigue solo en `root@localhost`.
+- **Connector/J 26.7.0:**
+  - se añadió `<mysql.version>26.7.0</mysql.version>` a `<properties>` del `pom.xml` raíz, con un comentario; la propiedad no existía y la 9.7.0 venía del padre de Spring Boot;
+  - `dependency:tree` resuelve `com.mysql:mysql-connector-j:jar:26.7.0:runtime`;
+  - `mvn -B clean verify`: `BUILD SUCCESS`, 327 pruebas (11 + 75 + 241) sin fallos ni errores;
+  - el jar incluye `mysql-connector-j-26.7.0.jar`.
+- **Verificación posterior:**
+  - **Aplicación** (jar, perfil `local`, `.env`, puerto 8080): arrancó en 5,7 s sin líneas `ERROR` ni `WARN` y se detuvo de forma ordenada, sin conexiones abiertas.
+  - **Driver:** 10 conexiones del usuario de la aplicación identificadas como «MySQL Connector/J 26.7.0», todas con TLS.
+  - **Esquema y datos:** Hibernate creó solo `tbl_user_credential` (InnoDB, `utf8mb4_0900_ai_ci`, FK `fk_user_credential_user` → `tbl_user`). Todo lo demás del esquema y los datos quedó igual que tras la restauración: 11 tablas y 0 filas. `tbl_product.sku` y `tbl_unit_of_measure.code` conservan `utf8mb4_0900_ai_ci`.
+  - **REST (sin escrituras):** sin token, 401; `POST /api/auth/token` con un usuario desconocido, 401; token con firma inválida, 401. Todas en `application/problem+json`.
+- **Dependency-Check:** `compile org.owasp:dependency-check-maven:aggregate` terminó con código 0 en unos 90 s.
+  - Esta vez **actualizó NVD** con 1.947 registros; última modificación 2026-10-09 00:17 UTC.
+  - Revisó 68 dependencias: 0 críticos, 0 altos, 0 medios y 2 bajos (los GHSA de DOMPurify en Swagger UI).
+  - `mysql-connector-j-26.7.0.jar`: 0 hallazgos.
+  - OSS Index siguió deshabilitado por falta de credenciales.
+- **Estado final:**
+  - `solgases-mysql` corre con MySQL 8.4.12, `healthy`, publicado solo en `127.0.0.1:3307` y montando únicamente `solgases_solgases-mysql84-data`;
+  - **el volumen 8.0 `solgases_solgases-mysql-data` está intacto:** misma fecha de creación, ningún contenedor lo usa, y la comprobación final del `sha256` de cada archivo y `tar --compare` contra la copia en frío fueron correctas;
+  - la versión efectiva de Connector/J pasa a ser 26.7.0, en lugar de la 9.7.0 indicada en los análisis anteriores.
+- **Pendiente o no verificado:**
+  - la reversión no se había ensayado. *Actualización:* se ensayó el 2026-10-08 en recursos desechables; ver «Resultado del ensayo de reversión»;
+  - el 403 con un usuario real, que depende del aprovisionamiento del primer administrador;
+  - la conexión de DBeaver con el usuario de la aplicación, que hará el desarrollador;
+  - cuándo eliminar el volumen 8.0 y la copia en frío, que requiere una decisión aparte tras cerrar el incremento;
+  - QA y producción;
+  - el análisis con OSS Index.
+
+**Resultado del ensayo de reversión (2026-10-08, terminado hacia las 20:33 hora local; solo recursos desechables):** se siguió la reversión del plan de corte sin tocar la instancia activa ni los respaldos.
+
+- **Comprobaciones previas:**
+  - `SHA256SUMS` de `~/Backups/Solgases/cutover-2026-10-08/`: 20 de 20 correctos.
+  - Instancia activa en solo lectura: `solgases-mysql`, MySQL 8.4.12, `healthy`, solo en `127.0.0.1:3307`, volumen `solgases_solgases-mysql84-data`, 11 tablas, 0 filas, sin `root@%` ni `healthchecker`. Su inventario coincide con el registrado tras el corte.
+  - El volumen 8.0 original no lo usaba ningún contenedor.
+  - Los nombres `solgases-rbk*` y los puertos 3321, 3322 y 18082 estaban libres.
+- **Fase A, restauración de la copia en frío:**
+  - **Restauración:** volumen desechable `solgases-rbk80-data`, extraído de `vol80-cold.tar` con el directorio de respaldos montado en solo lectura. Los 178 archivos coinciden con `vol80.sha256`.
+  - **Arranque:** proyecto Compose `solgases-rbk`, derivado de `docker-compose.yml.before`, con la imagen `mysql:8.0` fijada por digest, el puerto `127.0.0.1:3321` y el mismo healthcheck. Las credenciales se leyeron de `.env` a través de Compose, sin mostrarlas.
+  - **Resultado:** MySQL 8.0.46 llegó a `healthy` sin volver a inicializarse. El inventario fue idéntico al anterior al corte en los 17 tipos comparados y en el DDL: 10 tablas, cuentas, permisos y datos.
+- **Fase B, aplicación actual con Connector/J 9.7.0** (copia temporal del proyecto, sin `.env` ni `target/`, en la que solo se quitó `<mysql.version>` y su comentario del `pom.xml`):
+  - **Build:** `dependency:tree` resolvió `mysql-connector-j:jar:9.7.0:runtime`. `mvn -B clean verify` terminó con `BUILD SUCCESS`, 441 pruebas sin fallos, y el jar incluye `mysql-connector-j-9.7.0.jar`.
+  - **Arranque:** perfil `local`, puerto 18082 y URL de datos fijada a `127.0.0.1:3321`. Arrancó sin `ERROR` ni `WARN`.
+  - **Conexiones:** 10 conexiones del usuario de la aplicación identificadas como «MySQL Connector/J 9.7.0». La instancia activa no recibió conexiones nuevas: el total del usuario de la aplicación siguió en 10.
+  - **Esquema y datos:** Hibernate creó `tbl_user_credential` (InnoDB, `utf8mb4_0900_ai_ci`) y la carga inicial creó los 9 permisos y los 2 roles. No hubo usuarios ni credenciales.
+  - **REST:** sin token, 401; usuario desconocido en `/api/auth/token`, 401; token con firma inválida, 401; `GET /v3/api-docs` público en `local`, 200. La aplicación se detuvo de forma ordenada.
+- **Fase C, datos actuales de 8.4 en una 8.0.46 desechable:**
+  - **Volcado:** `mysqldump` 8.4.12 de solo lectura de la instancia activa: código 0, 11 `CREATE TABLE`, 0 `INSERT`.
+  - **Restauración:** en el proyecto `solgases-rbk-fwd`, con MySQL 8.0.46, credenciales temporales aleatorias y `127.0.0.1:3322`. Terminó con código 0 y sin errores.
+  - **Resultado:** idénticos al inventario activo el esquema, las tablas, columnas, índices, FK, restricciones, *checks*, objetos, datos y DDL, incluida `tbl_user_credential`.
+- **Tiempos medidos:**
+
+  | Paso | Duración |
+  |---|---|
+  | Restauración del volumen desde la copia en frío | 1,0 s |
+  | Arranque de 8.0.46 hasta `healthy` | 10,8 s |
+  | `clean verify` con 9.7.0 | 37 s |
+  | Arranque de la aplicación | 6,1 s |
+  | Fase C (volcado, instancia nueva, restauración) | 11,5 s |
+
+  La parte automatizable de la reversión tardó **unos 55 s** sin la fase C. A eso se suman la edición manual de `docker-compose.yml` y del `pom.xml`, y detener la instancia activa, que no se midieron porque no se ejecutaron sobre recursos reales. Si el volumen 8.0 original sigue intacto, como ahora, la reversión real no necesita restaurar la copia en frío.
+- **Limpieza y estado final:**
+  - eliminados solo los contenedores, redes y volúmenes `solgases-rbk*` y el directorio temporal: la copia del proyecto, logs y el volcado de la fase C;
+  - nunca se usó `down -v`;
+  - `SHA256SUMS` seguía correcto (20 de 20);
+  - la instancia activa quedó igual: mismo id, hora de arranque, imagen, puerto y volumen, y `healthy`;
+  - el volumen 8.0 original sigue sin usar por ningún contenedor y su contenido coincide archivo a archivo con `vol80.sha256`, comprobado montándolo en solo lectura.
+- **Limitaciones:**
+  - las bases tienen 0 filas de negocio, así que la comparación de datos es trivial;
+  - no se ensayó la edición real de `docker-compose.yml` ni del `pom.xml` del repositorio, solo sus equivalentes en copias temporales;
+  - no se probaron operaciones REST autenticadas, porque no hay usuarios reales;
+  - el ensayo usó la copia en frío, no el volumen 8.0 original, que no se montó en escritura;
+  - la fase C demuestra que el esquema actual de 8.4 se carga en 8.0, pero no cubre funciones exclusivas de 8.4, que hoy no se usan;
+  - la copia temporal del proyecto incluyó al principio carpetas ocultas de herramientas locales (`.aws`, `.codex`, `.agents`). Se borraron de la copia sin leerlas antes de compilar, y los originales no se tocaron.
+
+Fuentes: [avisos de seguridad de Apache Tomcat 11](https://tomcat.apache.org/security-11), [tabla de compatibilidad de Connector/J](https://dev.mysql.com/doc/connector-j/en/connector-j-versions.html), [guía oficial de Connector/J](https://dev.mysql.com/doc/connector-j/en/), [notas de Connector/J 8.4.0](https://dev.mysql.com/doc/relnotes/connector-j/en/news-8-4-0.html), [notas de Connector/J 26.7.0](https://dev.mysql.com/doc/relnotes/connector-j/en/news-26-7-0.html), [notas de MySQL 8.4.11](https://dev.mysql.com/doc/relnotes/mysql/8.4/en/news-8-4-11.html), [Oracle Critical Patch Update de julio de 2026](https://www.oracle.com/security-alerts/cpujul2026.html), [GHSA-6688-9rhm-gjv2](https://github.com/cure53/DOMPurify/security/advisories/GHSA-6688-9rhm-gjv2) y [GHSA-p98j-92pf-mc4p](https://github.com/cure53/DOMPurify/security/advisories/GHSA-p98j-92pf-mc4p).
+
+**Matriz endpoint–permiso:** desde el 2026-10-08 contiene las 38 reglas aprobadas (ver «Catálogo, matriz y credenciales»). *Antecedente histórico (anterior a las decisiones del 2026-10-08).* `EndpointPermissionMatrixConfiguration` definía una matriz **vacía** mientras el catálogo y la matriz reales no estén aprobados. Por tanto, en la aplicación actual cualquier usuario autenticado recibe 403 en todas las rutas protegidas, incluido Swagger. Las pruebas usan una matriz con claves ficticias (`TEST_*`) definida solo en el código de prueba; no constituye ni anticipa el catálogo real.
+
+**Pendientes y limitaciones**
+
+| Punto | Estado |
+|---|---|
+| Catálogo de roles y permisos | **Implementado (2026-10-08):** 9 permisos de negocio; roles `ADMIN` y `VIEWER`. `INVENTORY_OPERATOR` sigue pendiente de definición del negocio |
+| Matriz endpoint–permiso | **Implementada:** 38 operaciones protegidas con denegación por defecto. Swagger/OpenAPI público en `local`, `dev` y `qa` y desactivado en `prd` |
+| Aprovisionamiento del primer administrador | **Ejecutado (2026-10-08):** `create-first-admin` creó el administrador inicial en la base local (1 administrador activo con credencial Argon2id). Mecanismo local sin servidor web ni credenciales predeterminadas. *Antecedente:* tras implementarse quedó pendiente de una ejecución autorizada |
+| Credenciales de otros usuarios | Comando local `provision-credential` para usuarios sin credencial; no sobrescribe. No hay API administrativa de credenciales ni cambio de contraseña (pendientes para un incremento posterior) |
+| Política de contraseñas | **Aprobada e implementada (2026-10-08):** de 15 a 128 caracteres contados como puntos de código Unicode, sin reglas de composición; ver «Política de contraseñas». *Antecedente histórico:* hasta entonces no había política aprobada y el comando solo rechazaba contraseñas vacías |
+| Riesgos de administración detectados (sin reglas nuevas) | **Aceptado solo para uso local (2026-10-08):** el último administrador activo puede desactivarse o perder el rol `ADMIN`, lo que bloquearía la administración (en local, `create-first-admin` vuelve a estar disponible si no queda ningún administrador activo). `USER_WRITE` permite asignar cualquier rol, incluido `ADMIN`, por eso solo lo tiene `ADMIN`. **Debe revisarse y resolverse antes de desplegar fuera de local** |
+| Orígenes CORS | Pendiente; CORS deshabilitado |
+| Clave JWT por entorno | Debe proporcionarse fuera del repositorio (`JWT_SECRET`); `.env.example` incluye la variable vacía. Rotación de claves, emisor y audiencia no se han definido ni implementado |
+| Coste de Argon2id en el entorno objetivo | Mínimo OWASP medido solo en la máquina local; ajustar en el Incremento 8 |
+| Análisis de dependencias | **Vigente (tras el corte del 2026-10-08):** Connector/J 26.7.0 y Tomcat 11.0.26, con la base NVD actualizada: 0 críticos, 0 altos, 0 medios y 2 bajos (GHSA de DOMPurify en `swagger-ui` 5.32.14, **aceptados temporalmente el 2026-10-08** hasta que exista un WebJar corregido). OSS Index no se consultó por falta de credenciales. *Antecedente histórico:* los análisis anteriores con Connector/J 9.7.0 reportaron 2 altos y 2 medios en el driver. Se evaluaron temporalmente 8.4.0 (no adoptada) y 26.7.0 con MySQL 8.4.11 y 8.4.12; ver los párrafos históricos |
+| Healthcheck MySQL de Compose | **Resuelto:** se conserva `mysqladmin ping -h localhost`. `healthy` solo confirma que MySQL responde por socket; no valida credenciales, base de datos ni TCP. En 8.4.12 el comando respondió durante la inicialización, pero en la prueba Docker no llegó a marcar `healthy` antes de tiempo. El corte deberá comprobar aparte la conexión de la aplicación |
+| Privilegio `PROXY` de `root@%` (imagen Oracle 8.4.12) | **Resuelto:** observado solo en la prueba desechable con `MYSQL_ROOT_HOST=%`. Se acepta como comportamiento de la imagen; el corte omite esa variable y no crea `root@%` |
+| Corte local a MySQL 8.4.12 y Connector/J 26.7.0 | **Ejecutado y verificado (2026-10-08).** MySQL 8.4.12 local en `127.0.0.1:3307` y Connector/J 26.7.0. Volumen 8.0 conservado intacto y desconectado; su limpieza se decidirá aparte. Reversión documentada y **ensayada el 2026-10-08** en recursos desechables (≈55 s de pasos automatizables) |
+| Límite de intentos de autenticación | Aplazado a un incremento posterior. **Debe resolverse antes de exponer la API fuera del entorno local** |
+| Colación de `tbl_user.username` | **Política aprobada:** no distingue mayúsculas ni acentos. Colación real confirmada en la base local: `utf8mb4_0900_ai_ci`, con índice único. Sin cambios de esquema |
+| Ensayo de reversión en recursos desechables | **Ejecutado (2026-10-08):** restauración desde la copia en frío, aplicación con Connector/J 9.7.0 sobre MySQL 8.0.46 y paso de los datos actuales de 8.4 a 8.0, todo satisfactorio. Ver «Resultado del ensayo de reversión» y sus limitaciones |
+| Prueba del 403 con un usuario real | **Hecha (2026-10-08):** `viewer-test` (`VIEWER`) obtuvo 200 en categorías y productos y 403 en usuarios y roles |
+| Usuario de prueba `viewer-test` | **Desactivado (2026-10-08)** por la API y conservado como evidencia de prueba, con su rol y su credencial. Inactivo, no puede autenticarse |
+| Errores del comando local de credenciales | **Limitación aceptada para uso local:** si `create-first-admin` o `provision-credential` fallan, el mensaje puede incluir el nombre de usuario introducido, por ejemplo cuando ya existe. Nunca incluye la contraseña |
+| Riesgos residuales | **Aceptados solo para uso local (2026-10-08).** Bloquean exponer o desplegar fuera de local hasta resolverse: límite de intentos de autenticación, riesgo del último administrador, orígenes CORS, rotación, emisor y audiencia de la clave JWT, coste de Argon2id en el entorno objetivo y configuración de cuentas de QA y producción. Otros riesgos aceptados: DOMPurify (temporal), healthcheck por socket, copias de contraseñas en memoria fuera del comando, errores del comando con el nombre de usuario y OSS Index sin consultar |
+| Pendientes acordados | Ajuste del coste de Argon2id (Incremento 8), OSS Index (requiere credenciales), limpieza del volumen MySQL 8.0 y de la copia en frío (decisión aparte) |
+| Revisión humana de pruebas y cambios asistidos por IA | **Aplazada al cierre del MVP** (decisión del 2026-10-08); no es requisito para cerrar el Checkpoint 7 |
 
 ---
 
@@ -898,7 +1365,8 @@ Antes o durante la implementación deberán identificarse explícitamente:
 - Política de precios.
 - Autenticación.
 - Autorización.
-- Origen y política de credenciales, ciclo de vida de JWT y matriz de políticas por endpoint (Incremento 7).
+- ~~Política técnica de credenciales y JWT (Incremento 7).~~ **Resuelto:** autenticación local, hash Argon2id separado de `domain.User`, JWT HS256 de 15 minutos sin refresh tokens y verificación actual de estado/permisos en cada solicitud. El catálogo de roles y permisos, la matriz endpoint–permiso y el aprovisionamiento inicial del administrador se aprobaron e implementaron el 2026-10-08, y el administrador inicial existe en la base local (ver Incremento 7).
+- Orígenes CORS autorizados para los clientes (Incremento 7); CORS permanece deshabilitado mientras no se definan.
 - Versión concreta de WebLogic y compatibilidad con Spring Boot 4.1.1/Servlet 6.1+ (Incremento 8).
 - Hosting Git, estrategia de ramas, instancia/agentes/plugins de Jenkins, registro de imágenes, ambientes y política de despliegue/rollback (Incremento 8).
 - ~~Versión exacta de SonarQube/analyzer y soporte de Java 25 (Incremento 6).~~ **Resuelto:** Community Build `26.9.0.129388` con SonarJava `8.41.0.47177`, documentado en el Incremento 6. Sigue pendiente: condiciones obligatorias de promoción del Quality Gate (Incremento 8).

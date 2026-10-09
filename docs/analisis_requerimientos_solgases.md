@@ -80,6 +80,13 @@ Se recomienda separar conceptualmente:
 
 La granularidad adicional de permisos que exceda las operaciones aprobadas queda pendiente de definición. Para el Incremento 5, los códigos de permisos son editables, sus claves internas son estables, la carga inicial es idempotente y un rol puede tener cero permisos; consultar `mvp1.md` para las decisiones aprobadas completas.
 
+**Catálogo inicial aprobado (2026-10-08, Incremento 7):**
+- **Permisos de negocio** (lectura y escritura por área): `CATALOG_READ`, `CATALOG_WRITE`, `INVENTORY_READ`, `INVENTORY_MOVE`, `INVENTORY_ADJUST`, `USER_READ`, `USER_WRITE`, `ACCESS_READ` y `ACCESS_WRITE`.
+- **Roles:** `ADMIN`, con todos esos permisos y el único con `USER_WRITE` y `ACCESS_WRITE`, y `VIEWER`, con `CATALOG_READ` e `INVENTORY_READ`.
+- Un rol de operación de inventario (`INVENTORY_OPERATOR`) sigue **pendiente de definición del negocio**.
+
+La matriz endpoint–permiso y el aprovisionamiento del primer administrador están en `mvp1.md`, Incremento 7.
+
 ### RF-03 — Gestión de categorías
 
 El sistema deberá permitir organizar los productos mediante categorías.
@@ -311,8 +318,8 @@ Antes de implementar funcionalidades avanzadas conviene validar:
 - Cómo se manejan unidades de medida.
 - Cómo se controla el inventario actualmente.
 - Si existen productos con lotes, seriales o vencimiento.
-- Quién puede modificar inventario.
-- Qué roles existen.
+- Quién puede modificar inventario. *Parcialmente resuelto (2026-10-08):* registrar entradas y salidas exige `INVENTORY_MOVE`, y los ajustes `INVENTORY_ADJUST`; hoy solo `ADMIN` tiene ambos. Queda pendiente qué rol operativo, si lo hay, debe tenerlos.
+- Qué roles existen. *Parcialmente resuelto (2026-10-08):* el catálogo inicial tiene `ADMIN` y `VIEWER`; otros roles, como un operador de inventario, siguen pendientes.
 - Si habrá clientes registrados.
 - Política de precios.
 - Manejo de proveedores.
@@ -366,7 +373,27 @@ Documentar cuándo una operación de negocio debe ejecutarse dentro de una trans
 
 ### 11.6 Definir seguridad
 
-El Incremento 5 cubre la gestión administrativa de User, Role y Permission según `mvp1.md`, pero no la autenticación/autorización completa. Hasta que esta se defina y apruebe, el uso es local de desarrollo; no se añadirá un guard de perfil técnico como sustituto. El cambio de contraseña queda aplazado. Las claves internas estables de roles y permisos son independientes de los nombres de roles y códigos de permisos editables; la carga inicial debe ser idempotente y un rol puede tener cero permisos. Los campos y la cardinalidad User–Role ya están aprobados y se describen en la sección RF-01.
+*Antecedente (Incremento 5):* el Incremento 5 cubre la gestión administrativa de User, Role y Permission según `mvp1.md`, pero no la autenticación/autorización completa. Hasta que esta se defina y apruebe, el uso es local de desarrollo; no se añadirá un guard de perfil técnico como sustituto. El cambio de contraseña queda aplazado. Las claves internas estables de roles y permisos son independientes de los nombres de roles y códigos de permisos editables; la carga inicial debe ser idempotente y un rol puede tener cero permisos. Los campos y la cardinalidad User–Role ya están aprobados y se describen en la sección RF-01.
+
+**Estado tras el Incremento 7 (2026-10-08).** La autenticación y la autorización completas están definidas, aprobadas e implementadas según `mvp1.md`:
+- autenticación local con JWT;
+- autorización por permisos con denegación por defecto;
+- catálogo inicial y matriz endpoint–permiso aprobados;
+- Swagger/OpenAPI público solo en `local`, `dev` y `qa`;
+- un comando local sin servidor web para crear el primer administrador y provisionar credenciales, sin credenciales predeterminadas ni ruta pública de alta.
+
+El administrador inicial se creó en la base local y la autorización se verificó manualmente con usuarios reales el 2026-10-08: 200 para los permisos concedidos y 403 para un usuario `VIEWER` en operaciones reservadas a `ADMIN`. El Checkpoint 7 quedó cerrado para el alcance local.
+
+Siguen pendientes:
+- el cambio de contraseña y una API administrativa de credenciales;
+- el límite de intentos de autenticación, que debe resolverse antes de exponer la API fuera del entorno local;
+- los orígenes CORS.
+
+Se aceptó solo para uso local que el último administrador activo pueda desactivarse o perder el rol `ADMIN` (2026-10-08). Debe revisarse y resolverse antes de desplegar fuera de local. *Antecedente:* hasta esa fecha figuraba entre los pendientes como «reglas que eviten dejar el sistema sin administradores activos».
+
+El nombre de usuario no distingue mayúsculas ni acentos (colación `utf8mb4_0900_ai_ci`).
+
+La política de contraseñas también se aprobó y se implementó el 2026-10-08: de 15 a 128 caracteres contados como puntos de código Unicode, sin reglas de composición y sin alterar el valor introducido. El detalle está en `mvp1.md`. Hasta esa fecha figuraba entre los pendientes.
 
 ### 11.7 Revisar la versión de Java
 

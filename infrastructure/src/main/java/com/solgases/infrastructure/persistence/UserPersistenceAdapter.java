@@ -43,6 +43,11 @@ public class UserPersistenceAdapter implements UserPersistencePort {
     }
 
     @Override
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username).flatMap(user -> findById(user.getId()));
+    }
+
+    @Override
     public List<User> findAll() {
         List<UserJpaEntity> users = userRepository.findAllWithRoles();
         loadRolePermissions(users);
@@ -57,6 +62,11 @@ public class UserPersistenceAdapter implements UserPersistencePort {
     @Override
     public boolean existsByUsernameAndIdNot(String username, Long id) {
         return userRepository.existsByUsernameAndIdNot(username, id);
+    }
+
+    @Override
+    public boolean existsActiveUserWithRole(String roleKey) {
+        return userRepository.existsByActiveTrueAndRolesKey(roleKey);
     }
 
     @Override
