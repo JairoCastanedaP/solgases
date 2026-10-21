@@ -12,6 +12,9 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import com.nimbusds.jose.proc.SecurityContext;
+
 /** HS256 signing and verification of access tokens with a key provided outside the repository. */
 @Configuration
 public class JwtConfiguration {
@@ -20,7 +23,8 @@ public class JwtConfiguration {
 
     @Bean
     public JwtEncoder jwtEncoder(SecurityProperties properties) {
-        return NimbusJwtEncoder.withSecretKey(signingKey(properties)).algorithm(MacAlgorithm.HS256).build();
+        // Spring Security 6.5 has no secret-key builder for the encoder; HS256 is set by AccessTokenService's JWS header
+        return new NimbusJwtEncoder(new ImmutableSecret<SecurityContext>(signingKey(properties)));
     }
 
     @Bean

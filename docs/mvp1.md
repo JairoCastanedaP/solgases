@@ -42,11 +42,12 @@ Como parte del MVP se contemplan también las bases para administrar usuarios, r
 
 El MVP deberá respetar el stack definido en `lineamientos.md`:
 
-- Java 25.
-- Spring Boot 4.1.1.
-- Spring Framework 7.
+- Java 21.
+- Spring Boot 3.5.16.
+- Spring Framework 6.2 y Spring Security 6.x, con las versiones gestionadas por Spring Boot.
 - Jakarta EE.
-- Maven 3.9+.
+- Maven 3.9+, multimódulo (`domain`, `application`, `infrastructure`).
+- Empaquetado WAR en `infrastructure`; destino Oracle WebLogic Server 15.1.1, con despliegue manual validado en laboratorio el 2026-10-20 (ver Incremento 8).
 - Spring Data JPA.
 - MySQL.
 - REST APIs.
@@ -400,7 +401,7 @@ Objetivo:
 
 - Crear/configurar proyecto Spring Boot.
 - Configurar Maven.
-- Configurar Java 25.
+- Configurar Java 25 (objetivo vigente: Java 21, tras la migración descrita en el Incremento 8).
 - Configurar perfiles.
 - Configurar conexión a MySQL.
 - Configurar estructura inicial.
@@ -707,7 +708,7 @@ Mediciones anteriores del agregado (líneas): 80,7 % con 251 pruebas, antes de l
 **Decisiones acordadas para completar el Incremento 6**
 
 - **SonarQube:** usar Community Build local y ejecutar el análisis manualmente en este incremento; integrarlo con Jenkins/CI queda para el Incremento 8. La instancia está en `docker-compose.sonar.yml`, separada del Compose de la aplicación, con versión fija `26.9.0.129388` y volumen Docker nombrado. Se creó el proyecto local `SOLGASES` (`sonar.projectKey=solgases`) con rama principal `feature/clean-architecture`. La clave se fija como propiedad `sonar.projectKey` en el `pom.xml` raíz, para que cualquier análisis use el mismo proyecto sin pasarla por línea de comandos.
-- **Compatibilidad:** conservar Java 25 en el proyecto. La documentación oficial y el artefacto SonarJava `8.41.0.47177` respaldan soporte del lenguaje Java 25; la confirmación práctica queda pendiente del primer análisis. Si el análisis revela limitaciones, documentarlas sin bajar la versión de Java.
+- **Compatibilidad:** conservar Java 25 en el proyecto. La documentación oficial y el artefacto SonarJava `8.41.0.47177` respaldan soporte del lenguaje Java 25; la confirmación práctica queda pendiente del primer análisis. Si el análisis revela limitaciones, documentarlas sin bajar la versión de Java. *Sustituido (2026-10-17):* el objetivo vigente es Java 21 por la migración para WebLogic descrita en el Incremento 8; SonarJava `8.41.0.47177` también admite Java 21.
 - **Token:** el responsable generó un token de análisis limitado al proyecto `solgases`, con vencimiento de 30 días, y lo guardó localmente como `SONAR_TOKEN`. No se copia su valor a documentación, Compose, comandos registrados, logs ni archivos versionados. **Decisión revisada:** el token se mantiene fuera del `.env` que puede cargar Spring (el perfil `local` importa `.env` completo al arrancar desde la raíz) y se guarda como `SONAR_TOKEN` en `.sonar.env`, ignorado por Git y leído solo por el comando de análisis. El traslado está hecho y comprobado sin mostrar valores: `.sonar.env` está ignorado y sin seguimiento, y `.env` ya no contiene `SONAR_TOKEN`.
 - **Quality Gate:** solo informativo al inicio y sin bloquear `mvn verify`. El proyecto no define umbrales propios de cobertura ni un Quality Gate propio; se mantiene el Quality Gate predeterminado de la instancia local, que sí incluye condiciones y puede mostrar `ERROR`. Ese estado se usa solo como información: no bloquea el build ni el análisis manual (no se usa `sonar.qualitygate.wait`). Cualquier criterio obligatorio de promoción se decidirá en el Incremento 8.
 - **Hallazgos:** corregir únicamente errores y problemas de seguridad confirmados de máxima severidad. Mantener los demás hallazgos en la instancia de SonarQube; no exportar informes al repositorio ni duplicarlos en la documentación.
@@ -943,6 +944,7 @@ La autenticación y las políticas aprobadas se verifican con pruebas positivas 
 - **DOMPurify (aceptación temporal):** se aceptan GHSA-6688-9rhm-gjv2 y GHSA-p98j-92pf-mc4p (bajos, DOMPurify 3.4.13 dentro de `swagger-ui` 5.32.14), sin supresión ni parche del bundle.
   - **Alcance:** Swagger UI pública en `local`, `dev` y `qa`, y desactivada en `prd`. QA seguirá restringido a la red del equipo.
   - **Revisión:** cuando se publique un WebJar de `swagger-ui` con DOMPurify 3.4.16 o posterior. A 2026-10-08, el último WebJar (5.33.1) y `swagger-ui` 5.33.1 en npm siguen incluyendo la 3.4.13.
+  - **Resuelto (2026-10-17):** `swagger-ui` 5.33.2 incluye DOMPurify 3.4.16 y se adoptó en la fase 2 de la migración (ver Incremento 8, «Migración y actualización de dependencias»). Dependency-Check ya no informa estos hallazgos (CVE-2026-109344 y 109345).
 - **Límite de intentos de autenticación:** aplazado a un incremento posterior. **Debe resolverse antes de exponer la API fuera del entorno local.**
 - **`username`:** se mantiene que no distinga mayúsculas ni acentos. La colación real de `tbl_user.username` en la base local es `utf8mb4_0900_ai_ci`, con índice único (consulta de solo lectura, 2026-10-08). No se alteró el esquema.
 
@@ -976,10 +978,12 @@ mvn -B compile org.owasp:dependency-check-maven:aggregate
 # Comandos locales de credenciales (requieren autorización expresa antes de ejecutarlos contra una base real).
 # Se ejecutan desde la raíz del repositorio con el perfil local (.env); arrancan sin servidor web, piden la
 # contraseña dos veces sin mostrarla y terminan. <username> y <nombre visible> son marcadores.
-java -jar infrastructure/target/infrastructure-0.0.1-SNAPSHOT.jar --spring.profiles.active=local \
+# Desde 2026-10-17 el artefacto es un WAR ejecutable (WarLauncher); los comandos aún no se han vuelto a ejecutar
+# con el WAR contra una base real.
+java -jar infrastructure/target/infrastructure-0.0.1-SNAPSHOT.war --spring.profiles.active=local \
   --solgases.credentials.command=create-first-admin \
   --solgases.credentials.username='<username>' --solgases.credentials.display-name='<nombre visible>'
-java -jar infrastructure/target/infrastructure-0.0.1-SNAPSHOT.jar --spring.profiles.active=local \
+java -jar infrastructure/target/infrastructure-0.0.1-SNAPSHOT.war --spring.profiles.active=local \
   --solgases.credentials.command=provision-credential --solgases.credentials.username='<username>'
 ```
 
@@ -987,10 +991,10 @@ El informe se genera en `target/dependency-check-report.html` y `.json` (no vers
 
 **Estado vigente de base de datos y dependencias (tras el corte local del 2026-10-08):**
 
-- **Base de datos local:** `solgases-mysql` funciona con Oracle MySQL 8.4.12 (imagen fijada por digest), publicado solo en `127.0.0.1:3307` y con el volumen `solgases-mysql84-data`. El volumen MySQL 8.0 se conserva intacto y desconectado como copia de reversión. El detalle está en «Resultado del corte local».
-- **Dependencias fijadas en el `pom.xml` raíz:** Connector/J `26.7.0` (`mysql.version`, que sustituye a la 9.7.0 gestionada por Spring Boot) y Tomcat `11.0.26` (`tomcat.version`).
+- **Base de datos local al corte del 2026-10-08:** `solgases-mysql` funcionaba con Oracle MySQL 8.4.12 (imagen fijada por digest), publicado solo en `127.0.0.1:3307` y con el volumen `solgases-mysql84-data`. Para el laboratorio WebLogic del 2026-10-20, Compose se cambió para publicar el puerto del contenedor 3306 en `192.168.122.1:3307`, accesible desde la VM por la interfaz host–VM. El volumen MySQL 8.0 se conserva intacto y desconectado como copia de reversión. El detalle del corte está en «Resultado del corte local».
+- **Dependencias fijadas en el `pom.xml` raíz:** Connector/J `26.7.0` (`mysql.version`, que sustituye a la 9.7.0 gestionada por Spring Boot). *Actualización (2026-10-17):* la sustitución de Tomcat `11.0.26` (`tomcat.version`) se retiró con la migración a Spring Boot 3.5.16, que gestiona Tomcat 10.1.55. Después, las fases 1 y 2 añadieron estas sustituciones: `tomcat.version` 10.1.61, `jackson-bom.version` 2.21.8, `commons-lang3.version` 3.20.0, `log4j2.version` 2.25.5 y `swagger-ui.version` 5.33.2 (ver Incremento 8, «Migración y actualización de dependencias»).
 - **Pruebas:** `mvn -B clean verify` termina con `BUILD SUCCESS` y 468 pruebas aprobadas (11 + 103 + 354), sin fallos, errores ni omitidas, tras corregir el modo sin servidor web del comando. Con la política de contraseñas eran 465 (11 + 103 + 351). Antes eran 441 (11 + 83 + 347), con el catálogo, la matriz y el comando de credenciales, y tras el corte 327 (11 + 75 + 241).
-- **Dependency-Check** (última ejecución tras el corte, con la base NVD actualizada): 68 dependencias, 0 críticos, 0 altos, 0 medios y 2 bajos. Los dos bajos son GHSA-6688-9rhm-gjv2 y GHSA-p98j-92pf-mc4p, de DOMPurify incluido en `swagger-ui` 5.32.14. Connector/J 26.7.0 no tiene hallazgos y no hay supresiones. OSS Index no se consultó por falta de credenciales.
+- **Dependency-Check** (ejecución del 2026-10-08 con Spring Boot 4.1.1; *sustituida el 2026-10-17*, ver Incremento 8): 68 dependencias, 0 críticos, 0 altos, 0 medios y 2 bajos. Los dos bajos son GHSA-6688-9rhm-gjv2 y GHSA-p98j-92pf-mc4p, de DOMPurify incluido en `swagger-ui` 5.32.14. Connector/J 26.7.0 no tiene hallazgos y no hay supresiones. OSS Index no se consultó por falta de credenciales.
 - **Checkpoint 7:** cerrado para el alcance local el 2026-10-08, con pruebas manuales de administrador y `VIEWER` (200, 401 y 403 según lo esperado), el riesgo residual aceptado solo para uso local y la revisión humana final aplazada al cierre del MVP. No se habilita ningún despliegue fuera de local.
 
   Los hallazgos altos de Connector/J 9.7.0 ya no aplican.
@@ -1276,7 +1280,7 @@ Fuentes: [avisos de seguridad de Apache Tomcat 11](https://tomcat.apache.org/sec
 | Orígenes CORS | Pendiente; CORS deshabilitado |
 | Clave JWT por entorno | Debe proporcionarse fuera del repositorio (`JWT_SECRET`); `.env.example` incluye la variable vacía. Rotación de claves, emisor y audiencia no se han definido ni implementado |
 | Coste de Argon2id en el entorno objetivo | Mínimo OWASP medido solo en la máquina local; ajustar en el Incremento 8 |
-| Análisis de dependencias | **Vigente (tras el corte del 2026-10-08):** Connector/J 26.7.0 y Tomcat 11.0.26, con la base NVD actualizada: 0 críticos, 0 altos, 0 medios y 2 bajos (GHSA de DOMPurify en `swagger-ui` 5.32.14, **aceptados temporalmente el 2026-10-08** hasta que exista un WebJar corregido). OSS Index no se consultó por falta de credenciales. *Antecedente histórico:* los análisis anteriores con Connector/J 9.7.0 reportaron 2 altos y 2 medios en el driver. Se evaluaron temporalmente 8.4.0 (no adoptada) y 26.7.0 con MySQL 8.4.11 y 8.4.12; ver los párrafos históricos |
+| Análisis de dependencias | **Sustituido el 2026-10-17.** Tras la migración a Spring Boot 3.5.16 y las fases 1 y 2, Dependency-Check sigue en `BUILD FAILURE`: 23 identificadores, todos de Spring, 7 de ellos con CVSS ≥ 9 (ver Incremento 8, «Migración y actualización de dependencias»). *Estado del 2026-10-08 (Spring Boot 4.1.1):* Connector/J 26.7.0 y Tomcat 11.0.26, con la base NVD actualizada: 0 críticos, 0 altos, 0 medios y 2 bajos (GHSA de DOMPurify en `swagger-ui` 5.32.14, **aceptados temporalmente el 2026-10-08** hasta que exista un WebJar corregido). OSS Index no se consultó por falta de credenciales. *Antecedente histórico:* los análisis anteriores con Connector/J 9.7.0 reportaron 2 altos y 2 medios en el driver. Se evaluaron temporalmente 8.4.0 (no adoptada) y 26.7.0 con MySQL 8.4.11 y 8.4.12; ver los párrafos históricos |
 | Healthcheck MySQL de Compose | **Resuelto:** se conserva `mysqladmin ping -h localhost`. `healthy` solo confirma que MySQL responde por socket; no valida credenciales, base de datos ni TCP. En 8.4.12 el comando respondió durante la inicialización, pero en la prueba Docker no llegó a marcar `healthy` antes de tiempo. El corte deberá comprobar aparte la conexión de la aplicación |
 | Privilegio `PROXY` de `root@%` (imagen Oracle 8.4.12) | **Resuelto:** observado solo en la prueba desechable con `MYSQL_ROOT_HOST=%`. Se acepta como comportamiento de la imagen; el corte omite esa variable y no crea `root@%` |
 | Corte local a MySQL 8.4.12 y Connector/J 26.7.0 | **Ejecutado y verificado (2026-10-08).** MySQL 8.4.12 local en `127.0.0.1:3307` y Connector/J 26.7.0. Volumen 8.0 conservado intacto y desconectado; su limpieza se decidirá aparte. Reversión documentada y **ensayada el 2026-10-08** en recursos desechables (≈55 s de pasos automatizables) |
@@ -1286,7 +1290,7 @@ Fuentes: [avisos de seguridad de Apache Tomcat 11](https://tomcat.apache.org/sec
 | Prueba del 403 con un usuario real | **Hecha (2026-10-08):** `viewer-test` (`VIEWER`) obtuvo 200 en categorías y productos y 403 en usuarios y roles |
 | Usuario de prueba `viewer-test` | **Desactivado (2026-10-08)** por la API y conservado como evidencia de prueba, con su rol y su credencial. Inactivo, no puede autenticarse |
 | Errores del comando local de credenciales | **Limitación aceptada para uso local:** si `create-first-admin` o `provision-credential` fallan, el mensaje puede incluir el nombre de usuario introducido, por ejemplo cuando ya existe. Nunca incluye la contraseña |
-| Riesgos residuales | **Aceptados solo para uso local (2026-10-08).** Bloquean exponer o desplegar fuera de local hasta resolverse: límite de intentos de autenticación, riesgo del último administrador, orígenes CORS, rotación, emisor y audiencia de la clave JWT, coste de Argon2id en el entorno objetivo y configuración de cuentas de QA y producción. Otros riesgos aceptados: DOMPurify (temporal), healthcheck por socket, copias de contraseñas en memoria fuera del comando, errores del comando con el nombre de usuario y OSS Index sin consultar |
+| Riesgos residuales | **Aceptados solo para uso local (2026-10-08).** Bloquean exponer o desplegar fuera de local hasta resolverse: límite de intentos de autenticación, riesgo del último administrador, orígenes CORS, rotación, emisor y audiencia de la clave JWT, coste de Argon2id en el entorno objetivo y configuración de cuentas de QA y producción. Otros riesgos aceptados: DOMPurify (temporal; resuelto el 2026-10-17 con `swagger-ui` 5.33.2), healthcheck por socket, copias de contraseñas en memoria fuera del comando, errores del comando con el nombre de usuario y OSS Index sin consultar |
 | Pendientes acordados | Ajuste del coste de Argon2id (Incremento 8), OSS Index (requiere credenciales), limpieza del volumen MySQL 8.0 y de la copia en frío (decisión aparte) |
 | Revisión humana de pruebas y cambios asistidos por IA | **Aplazada al cierre del MVP** (decisión del 2026-10-08); no es requisito para cerrar el Checkpoint 7 |
 
@@ -1312,13 +1316,160 @@ Preparar la aplicación para entrega repetible mediante Git, Jenkins, contenedor
 
 ### Objetivo de despliegue: WebLogic
 
-WebLogic es el destino preferido por el responsable del proyecto, y Jenkins es la herramienta CI/CD preferida. El despliegue WebLogic queda condicionado a una prueba técnica de compatibilidad antes de convertirlo en ruta obligatoria: el repositorio usa Spring Boot 4.1.1, que requiere contenedor Servlet 6.1+ para despliegue tradicional; la documentación de Oracle para WebLogic 15c (15.1.1) declara compatibilidad Jakarta EE 9.1 / Servlet 5.0. Por tanto, esa versión no satisface el requisito de contenedor documentado por Spring Boot 4.1.1. La primera tarea será verificar la versión concreta de WebLogic disponible y desplegar un WAR mínimo de prueba. Si no es compatible, el responsable decidirá entre una versión/plataforma compatible con Spring Boot 4.1.1 o un cambio aprobado de versión/stack; no bajar Spring Boot ni sustituir WebLogic por iniciativa propia. Referencias: [requisitos Spring Boot 4.1.1](https://docs.spring.io/spring-boot/system-requirements.html), [compatibilidad WebLogic 15c](https://docs.oracle.com/en/middleware/standalone/weblogic-server/15.1.1/intro/compatibility.html).
+WebLogic es el destino preferido por el responsable del proyecto, y Jenkins es la herramienta CI/CD preferida. El destino previsto es Oracle WebLogic Server 15.1.1.
 
-JaCoCo (`0.8.15`, con soporte oficial de Java 25 desde 0.8.14), SonarScanner for Maven (`5.8.0.7211`) y SonarQube Community Build (`26.9.0.129388`, con SonarJava `8.41.0.47177`) quedaron fijados en el Incremento 6; el pipeline debe reutilizar esas versiones o justificar su cambio. Antes de establecer un Quality Gate obligatorio, decidir la edición y el alojamiento de SonarQube para CI y confirmar que la versión elegida mantiene el soporte del analizador para Java 25. Jenkins debe ejecutarse en una versión con soporte para Java 25 o configurarse con una JVM soportada para el controlador y un JDK 25 para compilar; comprobar compatibilidad de plugins requeridos. Referencias: [cambios JaCoCo](https://www.jacoco.org/jacoco/trunk/doc/changes.html), [política Java de Jenkins](https://www.jenkins.io/doc/book/platform-information/support-policy-java/), [analizador Java de SonarQube Community Build](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/languages/java).
+*Antecedente:* con Spring Boot 4.1.1 el despliegue no era viable, porque esa versión requiere un contenedor Servlet 6.1+ y la documentación de Oracle declara que WebLogic 15c (15.1.1.0.0) es compatible con Jakarta EE 9.1 (Servlet 5.0).
+
+**Cambio de stack aplicado (2026-10-17, rama `feature/MVP1_CI_CD`):** el proyecto se migró a Java 21 y Spring Boot 3.5.16 (Spring Framework 6.2.19, Spring Security 6.5.11, Hibernate 6.6, Jackson 2), y `infrastructure` se empaqueta como WAR. La documentación de Spring Boot 3.5 indica que una aplicación puede desplegarse «en cualquier contenedor compatible con Servlet 5.0+».
+
+**Confirmado en el repositorio y en laboratorio:**
+
+- Línea base previa a los ajustes de despliegue: `mvn -B clean verify` terminó con `BUILD SUCCESS` y 468 pruebas (11 + 103 + 354), sin fallos ni errores. Tras excluir `tomcat-embed-el`, se reconstruyó el WAR con `mvn -pl infrastructure -am package -DskipTests`; esa ejecución no volvió a correr la suite completa.
+- Se genera el WAR ejecutable `infrastructure/target/infrastructure-0.0.1-SNAPSHOT.war` (`Main-Class: org.springframework.boot.loader.launch.WarLauncher`, `Start-Class: com.solgases.infrastructure.SolgasesApplication`).
+- `SolgasesApplication` extiende `SpringBootServletInitializer` e implementa `WebApplicationInitializer` directamente, como recomienda Spring Boot para WebLogic.
+- `spring-boot-starter-tomcat` tiene alcance `provided`: `tomcat-embed-core` y `tomcat-embed-websocket` quedan en `WEB-INF/lib-provided/` (solo para `java -jar`), no en `WEB-INF/lib/`.
+- `WEB-INF/weblogic.xml` está incluido, con `prefer-web-inf-classes=false` y `prefer-application-packages` solo para `org.slf4j`.
+
+**Validación manual en laboratorio (2026-10-20):**
+
+- Entorno: RHEL 9.8 en VM QEMU/KVM, WebLogic Server 15.1.1, JDK Oracle HotSpot 21.0.12.1; dominio `lab_domain`, AdminServer en el puerto 7001.
+- Se encontró un conflicto de despliegue: `tomcat-embed-el` 10.1.61 declaraba `web-fragment` versión 6.0 y WebLogic no la admite. Se excluyó de la dependencia de validación para que quede en `WEB-INF/lib-provided/` junto al runtime embebido, fuera de las librerías de la aplicación desplegada. El empaquetado posterior completó correctamente y el SHA-256 del WAR copiado a la VM coincidió con el artefacto local.
+- El despliegue se creó como `solgases` y pasó a estado `Activo`. El contexto resultante es `/infrastructure-0.0.1-SNAPSHOT`, derivado del nombre del WAR; `/infrastructure-0.0.1-SNAPSHOT/swagger-ui/index.html` cargó en el navegador.
+- La app obtuvo respuestas autenticadas desde WebLogic: `GET /api/products` devolvió 200 y `[]`; `GET /api/roles` devolvió 200 con los roles `ADMIN` y `VIEWER`. También se observó 401 al consultar un recurso protegido sin autorización y se obtuvo un token mediante el endpoint de autenticación. No se guardan tokens ni contraseñas en esta documentación.
+- MySQL 8.4.12 corre en Docker en el host Ubuntu y se publicó para la red host–VM en `192.168.122.1:3307` (puerto 3306 del contenedor). La VM verificó conectividad TCP y la aplicación pudo consultar la base `solgases`.
+- La configuración de ejecución requiere `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` y `JWT_SECRET` (Base64, al menos 256 bits). La clave JWT se proporcionó en la sesión de arranque y su valor no se documenta; después de reiniciar AdminServer hay que volver a configurar una clave antes de probar autenticación.
+
+**Alcance que sigue pendiente:** repetir `mvn clean verify` después del ajuste del POM; revisar los logs y el comportamiento ante reinicios; comprobar una matriz más amplia de endpoints y respuestas 403; confirmar la modalidad JDK/SO contra la matriz oficial de certificación Oracle; decidir conexión JNDI frente a JDBC por variables; y completar automatización CI/CD y validación en un ambiente autorizado. La prueba de laboratorio demuestra el arranque y las rutas ejercitadas, no certificación de producción.
+
+Si la validación falla, el responsable decidirá entre ajustar el descriptor o las dependencias, cambiar de versión de WebLogic o cambiar el destino; no sustituir WebLogic por iniciativa propia. Referencias: [requisitos Spring Boot 3.5](https://docs.spring.io/spring-boot/3.5/system-requirements.html), [despliegue WAR tradicional en Spring Boot](https://docs.spring.io/spring-boot/3.5/how-to/deployment/traditional-deployment.html), [compatibilidad WebLogic 15c](https://docs.oracle.com/en/middleware/standalone/weblogic-server/15.1.1/intro/compatibility.html).
+
+*Antecedente histórico (análisis inicial del 2026-10-17, anterior a las fases 1 y 2; no refleja el estado vigente).* **Análisis de dependencias tras la migración.** Se ejecutó la configuración existente, sin cambios ni supresiones: `mvn -B compile org.owasp:dependency-check-maven:aggregate` (Dependency-Check 12.2.2). La base NVD local, del 2026-10-08, se actualizó sin API key (19.065 registros). OSS Index no se consultó por falta de credenciales. Resultado: `BUILD FAILURE` por `failBuildOnCVSS = 9`. Se examinaron 66 dependencias, con 49 identificadores únicos: 15 críticos, 14 altos, 17 medios y 3 bajos. Los informes quedan en `target/dependency-check-report.{html,json}`, sin versionar. Este resultado sustituye al estado «vigente» del 2026-10-08, que correspondía a Spring Boot 4.1.1 y Tomcat 11.0.26.
+
+| Componente (versión gestionada) | Hallazgos | ¿Existe versión corregida pública? | Aplicabilidad según inspección del código |
+|---|---|---|---|
+| Spring Framework 6.2.19 (reportado sobre `spring-core`) | 6 críticos, 6 altos, 4 medios y 1 bajo (CVE-2026-47883 a 47893, 59280 a 59283, 59313 y 59314) | **No en OSS.** Maven Central no ofrece nada posterior a 6.2.19. El aviso de spring.io para CVE-2026-47884 indica que 6.2.20 es «Enterprise Support Only» | La versión está afectada. Los componentes vulnerables no aparecen en el código: XsltView, SSE, WebFlux, RSocket, Jetty, FreeMarker, UrlHandlerFilter, UrlFileNameViewController, SpEL con entrada del usuario y Content-Disposition. CVE-2026-59282 (binding de rutas de propiedades) parece no aplicable, porque solo hay `@RequestParam` simples y `@RequestBody`, pero requiere confirmación. CVE-2026-59281 no aplica: `getFieldErrors()` solo genera JSON, no vistas HTML |
+| Spring Security 6.5.11 | 1 crítico (CVE-2026-59270), 2 altos y 2 medios | **No en OSS.** El aviso de CVE-2026-59270 indica que 6.5.12 es «Enterprise Support Only» | Sin LDAP embebido, WebAuthn, DPoP ni `AesBytesEncryptor`. **CVE-2026-59276** (comparaciones con `String.equals` en «varios componentes») requiere investigación: el aviso no identifica los componentes |
+| Spring Data JPA 3.5.13 | 1 medio (CVE-2026-47834, validación de `Sort`) | No hay versión posterior en Maven Central | No aplicable: no se aceptan `Sort` ni `Pageable` desde la petición |
+| Tomcat embebido 10.1.55 (`provided`, en `WEB-INF/lib-provided/`) | 8 críticos, 6 altos y 5 medios | Sí: todos los rangos de NVD terminan en 10.1.57 o antes, y 10.1.61 está publicada | No se usa en WebLogic, pero sí con `java -jar` en local. Casi todos dependen de funciones no usadas (rewrite valve, DIGEST/FORM, realms, cluster, HTTP/2, sockets Unix, ejemplos, restricciones de `web.xml`). **CVE-2026-65637** («corrección incompleta de CVE-2026-32990») requiere investigación |
+| Jackson Databind 2.21.4 | 1 medio (CVE-2026-54515) | Sí (2.21.5 o posterior) | Requiere `@JsonIgnoreProperties` por propiedad junto con `ACCEPT_CASE_INSENSITIVE_PROPERTIES`, que el código no usa |
+| commons-lang3 3.17.0 (a través de springdoc) | 1 medio (CVE-2025-48924) | Sí (3.18.0 o posterior) | Requiere entradas muy largas en `ClassUtils.getClass`; uso indirecto, poco probable |
+| log4j-api 2.24.3 (puente `log4j-to-slf4j`; el backend es Logback) | 3 medios | Sí (2.25.5 o posterior) | No aplicable: afectan a SSL de Log4j Core, al puente Log4j 1 y a `MapMessage`, que no se usan |
+| DOMPurify en `swagger-ui` 5.32.14 (RetireJS) | 2 bajos (CVE-2026-109344 y 109345, `IN_PLACE`) | No evaluado | Parecen corresponder a los GHSA de DOMPurify aceptados temporalmente el 2026-10-08; queda por confirmar la equivalencia |
+
+La aplicabilidad se basa en inspección estática del código, no en pruebas dinámicas. Ningún hallazgo se ha suprimido ni descartado formalmente.
+
+**Decisiones pendientes** (en su momento):
+
+1. Los 7 críticos de Spring Framework y Spring Security no se corrigen con ninguna versión OSS de la línea 3.5. Las opciones son soporte comercial, aceptación documentada del riesgo (o supresiones justificadas) o revisar el stack.
+2. ~~Si se aprueba, sustituir `tomcat.version` por 10.1.58 o posterior y revisar las sustituciones de Jackson, commons-lang3 y log4j.~~ *Sustituido:* ejecutado en las fases 1 y 2, con Tomcat 10.1.61 (la versión 10.1.58 no está publicada en Maven Central).
+
+No se cambió ninguna versión en ese análisis.
+
+**Correcciones al análisis inicial**, según la auditoría posterior del mismo día:
+
+- Las severidades de la tabla son las de NVD que usa Dependency-Check. Según los avisos de los fabricantes:
+  - Spring solo califica como CRITICAL CVE-2026-59270; CVE-2026-41707 y 47841 son HIGH y los demás de Spring son MEDIUM o LOW.
+  - Apache califica los CVE de Tomcat como Low, Moderate o Important.
+- Tomcat: el aviso de Apache sitúa las correcciones entre 10.1.56 y **10.1.59**, no en 10.1.58.
+- Spring Security: el soporte DPoP **sí** está activo. `OAuth2ResourceServerConfigurer` 6.5.11 registra automáticamente `DPoPAuthenticationConfigurer` (ver CVE-2026-41707 más abajo).
+- CVE-2026-59276 y CVE-2026-65637 quedaron evaluados en la auditoría.
+- Se confirmó que los dos CVE de DOMPurify corresponden a los GHSA aceptados el 2026-10-08.
+
+JaCoCo (`0.8.15`, con soporte oficial de Java 25 desde 0.8.14), SonarScanner for Maven (`5.8.0.7211`) y SonarQube Community Build (`26.9.0.129388`, con SonarJava `8.41.0.47177`) quedaron fijados en el Incremento 6; el pipeline debe reutilizar esas versiones o justificar su cambio. Antes de establecer un Quality Gate obligatorio, decidir la edición y el alojamiento de SonarQube para CI y confirmar que la versión elegida mantiene el soporte del analizador para Java 21. Jenkins debe ejecutarse en una versión con soporte para Java 21 o configurarse con una JVM soportada para el controlador y un JDK 21 para compilar; comprobar compatibilidad de plugins requeridos. *Nota:* las verificaciones locales del Incremento 6 y la migración se ejecutaron con JDK 25.0.4.1 compilando con `release` 21; falta una compilación con un JDK 21 real. Referencias: [cambios JaCoCo](https://www.jacoco.org/jacoco/trunk/doc/changes.html), [política Java de Jenkins](https://www.jenkins.io/doc/book/platform-information/support-policy-java/), [analizador Java de SonarQube Community Build](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/languages/java).
+
+### Migración y actualización de dependencias (2026-10-17)
+
+Rama `feature/MVP1_CI_CD`. Registro de lo hecho tras el cambio de stack descrito en «Objetivo de despliegue: WebLogic». No se modificaron Spring Boot (3.5.16), Spring Framework (6.2.19) ni Spring Security (6.5.11). No se añadieron supresiones a Dependency-Check ni se cambió `failBuildOnCVSS = 9`.
+
+**Tipos de verificación usados.** Se distinguen tres, porque no prueban lo mismo:
+
+- **Pruebas automatizadas:** `mvn -B clean verify` (Surefire, JUnit 5). Casi todas las pruebas web usan MockMvc y **no levantan Tomcat**. Recuentos tomados de los `<testcase>` de los informes Surefire.
+- **Pruebas de humo HTTP:** programas temporales, fuera del repositorio y sin versionar, que arrancan la aplicación con Tomcat embebido real, puerto aleatorio, H2 en memoria y una clave JWT aleatoria, y hacen peticiones HTTP. No usan MySQL ni el `.env`. No son reproducibles desde el repositorio ni forman parte de CI.
+- **Dependency-Check:** `mvn -B compile org.owasp:dependency-check-maven:aggregate` con la configuración versionada. Todas las ejecuciones de las fases 1 y 2 usaron la misma base NVD (última modificación 2026-10-17T23:16:55Z), sin API key y sin OSS Index (faltan credenciales). Los resultados son comparables entre sí, pero solo cubren lo que NVD y RetireJS asocian a cada dependencia.
+
+**Auditoría de aplicabilidad (antes de cambiar versiones).** Se contrastaron los hallazgos con los avisos oficiales: spring.io/security, la página de seguridad de Apache Tomcat 10, Apache Logging, GitHub Security Advisories y la API de soporte de Spring.
+
+- **Soporte de la plataforma:** según la API oficial de Spring, Spring Boot 3.5.x, Spring Framework 6.2.x, Spring Security 6.5.x y Spring Data JPA 3.5.x terminaron el soporte OSS el **2026-06-30**; el soporte comercial dura hasta el 2032-06-30. Las correcciones de los CVE de Spring (Framework 6.2.20, Security 6.5.12, Data JPA 3.5.14) son «Enterprise Support Only».
+- **Spring Boot 4 descartado:** las correcciones OSS (Framework 7.0.9, Security 7.1.1) exigen Spring Boot 4 y Jakarta EE 11 (Servlet 6.1), incompatibles con WebLogic 15.1.1 (Jakarta EE 9.1).
+- **Evidencia en tiempo de ejecución** (contexto real con H2 y perfil `dev`, inspeccionado por una prueba de humo):
+  - No hay beans de `XsltView`, `XsltViewResolver`, `UrlFilenameViewController`, `UrlHandlerFilter`, `DigestAuthenticationFilter`, `KeyBasedPersistenceTokenService` ni `AesBytesEncryptor`.
+  - Las clases de LDAP embebido no se pueden cargar.
+  - No están en el WAR WebFlux, RSocket, FreeMarker, Aalto, webauthn4j, Password4j ni Authorization Server.
+  - `spring.expression.compiler.mode` no está definido.
+  - Ninguno de los 45 handlers enlaza objetos con DataBinder.
+  - El único `PasswordEncoder` es `Argon2PasswordEncoder`.
+  - El conector Tomcat es HTTP/1.1 NIO, sin TLS, HTTP/2 ni AJP, sin valves de reescritura, con `SimpleRealm` y sin restricciones de seguridad del contenedor.
+- **DPoP (CVE-2026-41707):** el filtro DPoP es accesible por red. Una prueba DPoP válida con un token emitido por Solgases, que no lleva `cnf.jkt`, devolvió **401**. Sin tokens ligados a DPoP, la condición de reutilización no se cumple.
+- **Conclusión de la auditoría:** no se encontró evidencia de que se cumplan las condiciones de explotación de los CVE de Spring. Es una conclusión ligada a la configuración y al código actuales: cambios futuros pueden volver aplicable alguno. No se ha validado en WebLogic.
+
+**Fase 1: Tomcat embebido 10.1.55 → 10.1.61.**
+
+- **Cambio:** `tomcat.version` en el `pom.xml` raíz. La propiedad gestiona todos los artefactos `org.apache.tomcat.embed` de Spring Boot 3.5.16, que admite Tomcat 10.1.25 o posterior.
+- **Motivo:**
+  - Los 19 CVE de Tomcat informados se corrigen entre 10.1.56 y 10.1.59, según el aviso de Apache.
+  - Apache publicó además en 10.1.60 otros CVE que Dependency-Check no detectó, por ejemplo CVE-2026-86350 (Important, HTTP/2, afecta a 10.1.55–10.1.59).
+  - 10.1.61 es la versión estable actual (publicada el 2026-10-12).
+  - La cobertura de los CVE de 10.1.60 se basa en el aviso de Apache, no en Dependency-Check.
+- **WAR intermedio de esa iteración, antes del ajuste requerido por WebLogic:** `tomcat-embed-core` y `tomcat-embed-websocket` 10.1.61 en `WEB-INF/lib-provided/`; `tomcat-embed-el` 10.1.61 en `WEB-INF/lib/`. No cambió ninguna otra librería en esa iteración.
+- **Pruebas automatizadas:** `BUILD SUCCESS`, 468 pruebas (11 + 103 + 354), 0 fallos, 0 errores y 0 omitidas.
+- **Prueba de humo HTTP:**
+  - El servidor informó `Apache Tomcat/10.1.61` y se cargó `tomcat-embed-el-10.1.61`.
+  - `POST /api/auth/token` con credenciales incorrectas → 401 ProblemDetail; con cuerpo vacío → 400 con mensajes de validación interpolados.
+  - Rutas protegidas y no mapeadas sin token → 401; `/v3/api-docs` y `/swagger-ui/index.html` en `dev` → 200; parada ordenada.
+  - No se probó una petición autenticada con 200 sobre Tomcat real ni los comandos CLI con `java -jar`.
+- **Dependency-Check:** de 49 a **30 identificadores**. Desaparecen los 19 de Tomcat (8 críticos, 6 altos y 5 medios) y no hay hallazgos nuevos. Los de CVSS ≥ 9 bajan de 15 a 7. Sigue en `BUILD FAILURE`.
+
+**Fase 2: dependencias con correcciones públicas** (una dependencia por iteración, en este orden):
+
+| Iteración | Cambio | Motivo y fuente | Pruebas automatizadas | Dependency-Check |
+|---|---|---|---|---|
+| 1. Jackson 2.21.4 → **2.21.8** | `jackson-bom.version` (6 módulos; `jackson-annotations` sigue en 2.21, según el BOM) | GitHub Security Advisories: 11 avisos afectaban a 2.21.4 (9 en databind y 2 en core, varios HIGH); Dependency-Check solo detectaba CVE-2026-54515. Todos se corrigen en 2.21.7; las notas de 2.21.8 añaden CVE-2026-110879 | 468, 0 fallos | 30 → 29: desaparece CVE-2026-54515 |
+| 2. commons-lang3 3.17.0 → **3.20.0** | `commons-lang3.version` | CVE-2025-48924 (corregido en 3.18.0). 3.20.0 es la versión que declara swagger-core 2.2.55, su único consumidor en el WAR | 468, 0 fallos | 29 → 28: desaparece CVE-2025-48924 |
+| 3. Log4j 2.24.3 → **2.25.5** | `log4j2.version` (`log4j-api` y `log4j-to-slf4j`) | Aviso de Apache Logging: CVE-2026-49844 afecta a `log4j-api` (corregido en 2.25.5 y 2.26.1). CVE-2026-34477 (Log4j Core) y 34479 (`log4j-1.2-api`) eran falsos positivos de componente: no están en el WAR | 468, 0 fallos; sin advertencias de SLF4J | 28 → 25: desaparecen los 3 |
+| 4. swagger-ui 5.32.14 → **5.33.2** | `swagger-ui.version` con gestión de `org.webjars:swagger-ui` en `dependencyManagement`, y `springdoc.swagger-ui.version` en `application.yml` | DOMPurify 3.4.13 → 3.4.16 (GHSA-6688-9rhm-gjv2 y GHSA-p98j-92pf-mc4p). 5.33.2 es la primera versión del WebJar con 3.4.16; 5.33.1 sigue con 3.4.13 | Primer intento: `BUILD FAILURE`, 3 fallos (ver abajo). Tras el ajuste: 468, 0 fallos | 25 → 23: desaparecen CVE-2026-109344 y 109345 |
+
+Detalles de las iteraciones:
+
+- **Pruebas de humo de las iteraciones 1 a 3:** se repitieron las peticiones HTTP de la fase 1, con los mismos resultados. Las librerías del WAR solo cambiaron en los JAR de cada iteración.
+- **Riesgo de la iteración 1:** Jackson 2.21.8 se publicó el mismo 2026-10-17. Es un parche de la línea 2.21, con muy poco tiempo en uso.
+- **Fallo y corrección de la iteración 4:**
+  - Al gestionar solo el WebJar, `ApiDocumentationAccessTest.openApiAndSwaggerUiArePublic` falló en `local`, `dev` y `qa`: `/swagger-ui/index.html` devolvía 404.
+  - **Causa:** `springdoc-openapi-starter-common` 2.9.1 trae `springdoc.swagger-ui.version=5.32.14` en `springdoc.config.properties`, y `SwaggerResourceResolver` usa esa versión para localizar `webjars/swagger-ui/<versión>/`.
+  - **Corrección:** `springdoc.swagger-ui.version: "@swagger-ui.version@"` en el `application.yml` base. `spring-boot-starter-parent` filtra `application*.yml` con el delimitador `@`, así que el valor sale de la misma propiedad Maven que gestiona el WebJar. El marcador va entrecomillado porque en YAML `@` no puede iniciar un valor sin comillas. Cada perfil sigue decidiendo `enabled`.
+  - No se cambió la configuración de seguridad.
+- **Prueba de humo de Swagger UI por perfil (iteración 4):**
+  - `local`, `dev` y `qa`:
+    - `/v3/api-docs` → 200; `/swagger-ui.html` → 302 hacia `/swagger-ui/index.html`, que devuelve 200.
+    - Los 7 recursos estáticos que referencia `index.html` (CSS, favicons, `swagger-ui-bundle.js`, `swagger-ui-standalone-preset.js` y `swagger-initializer.js`) → 200, sin ningún 404.
+    - El bundle servido declara DOMPurify 3.4.16.
+    - `swagger-initializer.js` incluye `"configUrl" : "/v3/api-docs/swagger-config"`, que devuelve 200 con `"url":"/v3/api-docs"`.
+  - `prd`: `/v3/api-docs`, `/swagger-ui.html` y `/swagger-ui/index.html` → 401; la documentación sigue desactivada y no es pública.
+  - **Swagger UI se validó mediante respuestas HTTP y recursos estáticos; no se ha verificado visualmente en un navegador** (ejecución de JavaScript y renderizado).
+- **WAR final:** se genera correctamente en `infrastructure/target/infrastructure-0.0.1-SNAPSHOT.war`. Tras excluir `tomcat-embed-el` de las dependencias desplegadas, el empaquetado se validó en WebLogic 15.1.1; el runtime embebido queda en `lib-provided/`. La imagen de Swagger UI y las rutas autenticadas se verificaron en el entorno de laboratorio descrito arriba.
+
+**Estado vigente del análisis de dependencias (tras la fase 2):**
+
+- **Resultado:** Dependency-Check sigue en **`BUILD FAILURE`**, con 23 identificadores únicos (7 críticos, 8 altos, 7 medios y 1 bajo según NVD).
+- **Composición:** todos son de Spring: 17 de Spring Framework 6.2.19, 5 de Spring Security 6.5.11 y 1 de Spring Data JPA 3.5.13.
+- **Los 7 con CVSS ≥ 9:** CVE-2026-47884, 47890, 47891, 47892, 59313 y 59283 (Framework) y CVE-2026-59270 (Security).
+- **Por qué no se resuelven con versiones públicas:** ninguno tiene corrección OSS compatible con Spring Boot 3.5 y WebLogic 15.1.1.
+- **El proyecto no puede considerarse libre de vulnerabilidades.** La no aplicabilidad descrita en la auditoría no es una aceptación formal del riesgo.
+- **Limitaciones del análisis:** Dependency-Check tampoco evalúa `tomcat-embed-websocket` por separado, y OSS Index sigue sin consultarse.
+
+**Decisiones pendientes del responsable:**
+
+1. Para los 23 hallazgos de Spring:
+   - (a) soporte comercial para la línea 3.5;
+   - (b) aceptación documentada del riesgo, con supresiones justificadas por CVE y fecha de caducidad (los críticos requieren aprobación explícita);
+   - (c) cambio de destino a un contenedor con Jakarta EE 11 y Spring Boot 4.
+2. Si `failBuildOnCVSS = 9`, basado en NVD, debe seguir bloqueando mientras se toma esa decisión.
+3. Revisión visual de Swagger UI en un navegador.
+4. ~~Validación inicial del despliegue en WebLogic 15.1.1.~~ **Hecha manualmente en laboratorio (2026-10-20);** falta ampliar la verificación y automatizarla en CI/CD.
+5. Retirar las sustituciones de versiones cuando Spring Boot gestione versiones iguales o posteriores. Cada una tiene un comentario con esta condición en el `pom.xml` raíz.
 
 ### Decisiones pendientes
 
-- Versión/licencia/entorno concreto de WebLogic, SO/JDK certificados, modalidad WAR y conexión/credenciales JNDI o JDBC.
+- Confirmación de certificación del SO/JDK según la matriz oficial Oracle, y decisión entre conexión JDBC por variables o datasource JNDI para el despliegue.
 - Servidor Jenkins, versión, agentes, plugins permitidos, hosting Git y estrategia de ramas.
 - Registro de imágenes/artefactos, ambientes y credenciales; nunca incluir secretos en el `Jenkinsfile` o imagen.
 - Umbrales del Quality Gate heredados del Incremento 6, aprobación de promoción, ventanas de despliegue y política de rollback.
@@ -1367,7 +1518,7 @@ Antes o durante la implementación deberán identificarse explícitamente:
 - Autorización.
 - ~~Política técnica de credenciales y JWT (Incremento 7).~~ **Resuelto:** autenticación local, hash Argon2id separado de `domain.User`, JWT HS256 de 15 minutos sin refresh tokens y verificación actual de estado/permisos en cada solicitud. El catálogo de roles y permisos, la matriz endpoint–permiso y el aprovisionamiento inicial del administrador se aprobaron e implementaron el 2026-10-08, y el administrador inicial existe en la base local (ver Incremento 7).
 - Orígenes CORS autorizados para los clientes (Incremento 7); CORS permanece deshabilitado mientras no se definan.
-- Versión concreta de WebLogic y compatibilidad con Spring Boot 4.1.1/Servlet 6.1+ (Incremento 8).
+- ~~Versión concreta de WebLogic y compatibilidad con Spring Boot 4.1.1/Servlet 6.1+ (Incremento 8).~~ **Actualizado:** destino WebLogic 15.1.1 (Jakarta EE 9.1); Java 21 y Spring Boot 3.5.16 con WAR. Despliegue manual validado en un laboratorio RHEL 9.8 el 2026-10-20; la certificación formal de la combinación SO/JDK y el pipeline siguen pendientes.
 - Hosting Git, estrategia de ramas, instancia/agentes/plugins de Jenkins, registro de imágenes, ambientes y política de despliegue/rollback (Incremento 8).
 - ~~Versión exacta de SonarQube/analyzer y soporte de Java 25 (Incremento 6).~~ **Resuelto:** Community Build `26.9.0.129388` con SonarJava `8.41.0.47177`, documentado en el Incremento 6. Sigue pendiente: condiciones obligatorias de promoción del Quality Gate (Incremento 8).
 - Enfoque de contenedorización y monitoreo de aplicación, incluyendo selección y exposición segura de health checks/logs (Incremento 8).

@@ -8,7 +8,7 @@ import com.solgases.application.exception.UnitOfMeasureNotFoundException;
 import com.solgases.domain.model.UnitOfMeasure;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
 /** Persistence of units of measure against a real JPA provider and an in-memory H2 database. */

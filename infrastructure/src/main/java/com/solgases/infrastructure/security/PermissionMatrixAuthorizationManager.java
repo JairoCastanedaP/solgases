@@ -6,7 +6,6 @@ import org.springframework.security.authentication.AuthenticationTrustResolver;
 import org.springframework.security.authentication.AuthenticationTrustResolverImpl;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
-import org.springframework.security.authorization.AuthorizationResult;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
@@ -35,9 +34,9 @@ public class PermissionMatrixAuthorizationManager implements AuthorizationManage
                 .toList();
     }
 
+    // Spring Security 6.x: check(...) is the abstract method; authorize(...) delegates to it by default
     @Override
-    public AuthorizationResult authorize(Supplier<? extends Authentication> authentication,
-            RequestAuthorizationContext context) {
+    public AuthorizationDecision check(Supplier<Authentication> authentication, RequestAuthorizationContext context) {
         Authentication current = authentication.get();
         if (current == null || !current.isAuthenticated() || trustResolver.isAnonymous(current)) {
             return DENIED;

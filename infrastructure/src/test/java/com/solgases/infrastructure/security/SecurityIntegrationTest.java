@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -56,9 +56,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 
 /**
  * End-to-end checks of the security filter chain against an in-memory H2 database. The permission keys used
@@ -108,6 +109,8 @@ class SecurityIntegrationTest {
     @Autowired
     private JwtEncoder jwtEncoder;
     @Autowired
+    private TransactionTemplate transactionTemplate;
+    @Autowired
     @Qualifier("endpointPermissionMatrix")
     private EndpointPermissionMatrix productionMatrix;
 
@@ -145,9 +148,12 @@ class SecurityIntegrationTest {
         if (!active) {
             user.deactivate();
         }
-        user = userRepository.saveAndFlush(user);
-        credentialRepository.saveAndFlush(new UserCredentialJpaEntity(user, passwordEncoder.encode(password)));
-        return user;
+        // One transaction: the credential's @MapsId association cascades persist to a user that must stay managed
+        return transactionTemplate.execute(status -> {
+            UserJpaEntity saved = userRepository.saveAndFlush(user);
+            credentialRepository.saveAndFlush(new UserCredentialJpaEntity(saved, passwordEncoder.encode(password)));
+            return saved;
+        });
     }
 
     private ResultActions requestToken(String username, String secret) throws Exception {
@@ -157,7 +163,7 @@ class SecurityIntegrationTest {
 
     private String token(String username) throws Exception {
         MvcResult result = requestToken(username, password).andExpect(status().isOk()).andReturn();
-        return JSON.readTree(result.getResponse().getContentAsString()).get("accessToken").asString();
+        return JSON.readTree(result.getResponse().getContentAsString()).get("accessToken").asText();
     }
 
     private ResultActions getWithToken(String path, String token) throws Exception {
@@ -193,13 +199,13 @@ class SecurityIntegrationTest {
                 .andExpect(jsonPath("$.expiresIn").value(900))
                 .andReturn();
 
-        String[] parts = JSON.readTree(result.getResponse().getContentAsString()).get("accessToken").asString()
+        String[] parts = JSON.readTree(result.getResponse().getContentAsString()).get("accessToken").asText()
                 .split("\\.");
         JsonNode header = JSON.readTree(Base64.getUrlDecoder().decode(parts[0]));
         JsonNode claims = JSON.readTree(Base64.getUrlDecoder().decode(parts[1]));
-        assertThat(header.get("alg").asString()).isEqualTo("HS256");
-        assertThat(claims.propertyNames()).containsExactlyInAnyOrder("sub", "iat", "exp");
-        assertThat(claims.get("sub").asString()).isEqualTo(String.valueOf(user.getId()));
+        assertThat(header.get("alg").asText()).isEqualTo("HS256");
+        assertThat(claims.properties()).extracting(Map.Entry::getKey).containsExactlyInAnyOrder("sub", "iat", "exp");
+        assertThat(claims.get("sub").asText()).isEqualTo(String.valueOf(user.getId()));
         assertThat(claims.get("exp").asLong() - claims.get("iat").asLong()).isEqualTo(900);
     }
 

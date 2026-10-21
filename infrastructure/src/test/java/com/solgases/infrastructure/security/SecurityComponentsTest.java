@@ -18,8 +18,8 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 
 class SecurityComponentsTest {
 
@@ -71,12 +71,12 @@ class SecurityComponentsTest {
         assertThat(unauthorized.getContentType()).startsWith("application/problem+json");
         assertThat(unauthorized.getHeader("WWW-Authenticate")).isEqualTo("Bearer");
         assertThat(problem401.get("status").asInt()).isEqualTo(401);
-        assertThat(problem401.get("instance").asString()).isEqualTo("/api/categories");
+        assertThat(problem401.get("instance").asText()).isEqualTo("/api/categories");
         assertThat(unauthorized.getContentAsString()).doesNotContain("internal cause").doesNotContain("token-value");
 
         JsonNode problem403 = JSON.readTree(forbidden.getContentAsString());
         assertThat(forbidden.getStatus()).isEqualTo(403);
-        assertThat(problem403.get("title").asString()).isEqualTo("Forbidden");
+        assertThat(problem403.get("title").asText()).isEqualTo("Forbidden");
         assertThat(forbidden.getContentAsString()).doesNotContain("internal cause");
     }
 
