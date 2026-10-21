@@ -13,10 +13,28 @@ pipeline {
     }
 
     stages {
-        stage('Verify') {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Compile') {
             steps {
                 sh 'java -version'
-                sh 'mvn -B clean verify'
+                sh 'mvn -B clean -DskipTests compile'
+            }
+        }
+
+        stage('Tests') {
+            steps {
+                sh 'mvn -B test'
+            }
+        }
+
+        stage('Package and coverage') {
+            steps {
+                sh 'mvn -B -DskipTests verify'
             }
         }
     }
