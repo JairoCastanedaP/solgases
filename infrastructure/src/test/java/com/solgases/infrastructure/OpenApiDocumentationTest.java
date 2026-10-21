@@ -30,8 +30,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 
 /**
  * Checks that every REST operation is documented in the generated OpenAPI specification, without a database:
@@ -42,9 +42,9 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @SpringBootTest(classes = SolgasesApplication.class, properties = {
         "spring.autoconfigure.exclude="
-                + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
-                + "org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration,"
-                + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration"
+                + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
+                + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
+                + "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration"
 })
 class OpenApiDocumentationTest {
 
@@ -108,7 +108,7 @@ class OpenApiDocumentationTest {
                 }
                 operations++;
                 String name = method.toUpperCase() + " " + path.getKey();
-                if (!operation.hasNonNull("summary") || operation.get("summary").asString().isBlank()) {
+                if (!operation.hasNonNull("summary") || operation.get("summary").asText().isBlank()) {
                     undocumented.add(name + ": missing summary");
                 }
                 JsonNode responses = operation.get("responses");
@@ -130,24 +130,24 @@ class OpenApiDocumentationTest {
         }
 
         assertThat(spec.at("/components/schemas/ProblemDetail").isObject()).isTrue();
-        assertThat(spec.at("/components/securitySchemes/bearerAuth/type").asString("")).isEqualTo("http");
-        assertThat(spec.at("/components/securitySchemes/bearerAuth/scheme").asString("")).isEqualTo("bearer");
+        assertThat(spec.at("/components/securitySchemes/bearerAuth/type").asText("")).isEqualTo("http");
+        assertThat(spec.at("/components/securitySchemes/bearerAuth/scheme").asText("")).isEqualTo("bearer");
         assertThat(spec.at("/security/0/bearerAuth").isArray()).isTrue();
         // The token operation is the only public one; Swagger/OpenAPI itself is not documented as public
         assertThat(publicOperations).containsExactly("POST /api/auth/token");
-        assertThat(paths.propertyNames()).allMatch(path -> path.startsWith("/api/"));
+        assertThat(paths.properties()).extracting(Map.Entry::getKey).allMatch(path -> path.startsWith("/api/"));
         assertThat(operations).isPositive();
         assertThat(undocumented).isEmpty();
     }
 
     private static boolean hasResponse(JsonNode responses, String statusClass) {
-        return responses.propertyNames().stream().anyMatch(code -> code.startsWith(statusClass));
+        return responses.properties().stream().map(Map.Entry::getKey).anyMatch(code -> code.startsWith(statusClass));
     }
 
     // Error responses (401, 403, 500) are documented as ProblemDetail documents
     private static boolean documentsProblem(JsonNode responses, String status) {
         return PROBLEM_DETAIL_REF.equals(
-                responses.at("/" + status + "/content/application~1problem+json/schema/$ref").asString(""));
+                responses.at("/" + status + "/content/application~1problem+json/schema/$ref").asText(""));
     }
 
     // An explicit empty security list marks a public operation

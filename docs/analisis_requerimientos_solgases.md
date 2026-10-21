@@ -187,11 +187,12 @@ Los siguientes requisitos técnicos se derivan directamente de los lineamientos 
 
 ### RNF-01 — Plataforma
 
-- Java 25.
-- Spring Boot 4.1.1.
-- Spring Framework 7.
+- Java 21.
+- Spring Boot 3.5.16.
+- Spring Framework 6.2 y Spring Security 6.x, con las versiones gestionadas por Spring Boot.
 - Jakarta EE.
-- Maven 3.9+.
+- Maven 3.9+, multimódulo (`domain`, `application`, `infrastructure`).
+- Empaquetado WAR en `infrastructure`; destino de despliegue: Oracle WebLogic Server 15.1.1, validado manualmente en laboratorio el 2026-10-20. Ver alcance y limitaciones en el Incremento 8 de `mvp1.md`.
 - Spring Data JPA.
 - MySQL.
 - APIs REST.
@@ -298,7 +299,7 @@ Esta lista no constituye todavía un modelo de datos definitivo.
 
 El MVP 1 podrá considerarse funcional cuando:
 
-1. La aplicación arranque correctamente con Java 25 y Spring Boot 4.1.1.
+1. La aplicación arranque correctamente con Java 21 y Spring Boot 3.5.16.
 2. La estructura del proyecto siga los lineamientos establecidos.
 3. La aplicación pueda conectarse a MySQL.
 4. Existan APIs REST para las funcionalidades incluidas en el MVP.
@@ -397,7 +398,7 @@ La política de contraseñas también se aprobó y se implementó el 2026-10-08:
 
 ### 11.7 Revisar la versión de Java
 
-El archivo identifica Java 25 como LTS. Para el proyecto del curso se deberá mantener exactamente la versión requerida por el docente y verificar la compatibilidad concreta de Spring Boot 4.1.1 y las dependencias seleccionadas.
+La versión objetivo actual es Java 21 (LTS), con Spring Boot 3.5.16. El proyecto partió de Java 25 y Spring Boot 4.1.1 y se migró a esta combinación para hacer viable el despliegue WAR en Oracle WebLogic Server 15.1.1 (Jakarta EE 9.1). El despliegue y las rutas principales se validaron manualmente en laboratorio el 2026-10-20; falta confirmar formalmente la combinación SO/JDK en la matriz Oracle y automatizar el flujo (ver Incremento 8 en `mvp1.md`).
 
 ### 11.8 Calidad de código
 

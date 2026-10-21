@@ -9,9 +9,10 @@ This repository is used for an AI-Assisted Software Development with Java traini
 
 ## Technology Stack
 
-- Java 25 (LTS)
-- Spring Boot 4.1.1 (Spring Framework 7, Jakarta EE)
-- Maven 3.9+
+- Java 21 (LTS) as the target release
+- Spring Boot 3.5.16 (Spring Framework 6.2, Jakarta EE)
+- Spring Security 6.x, with the version managed by Spring Boot
+- Maven 3.9+, multi-module reactor (`domain`, `application`, `infrastructure`)
 - Spring Data JPA for persistence
 - MySQL as the database
 - REST APIs
@@ -20,12 +21,21 @@ This repository is used for an AI-Assisted Software Development with Java traini
 - Swagger / OpenAPI (springdoc-openapi) for API documentation
 - Postman for endpoint testing
 
-## Spring Boot 4 Rules
+## Spring Boot 3.5 Rules
 
-- Target Spring Boot 4.1.1 only.
-- Do not use APIs, starters, properties or configuration styles deprecated or removed since Spring Boot 3.x.
-- Do not generate code written for Spring Boot 2.x or 3.x when a Spring Boot 4.x equivalent exists.
+- Target Spring Boot 3.5.16 only. Use the dependency versions managed by Spring Boot unless an override is documented and justified (for example, a security fix).
+- Do not use APIs, starters, properties or configuration styles deprecated or removed in Spring Boot 3.5.
+- Do not use APIs that exist only in Spring Boot 4.x, Spring Framework 7, Spring Security 7 or Jackson 3 (`tools.jackson.*`); use the Spring Boot 3.5 equivalents (Jackson 2, `com.fasterxml.jackson.*`).
+- Do not use Java language features or APIs newer than Java 21.
 - Use jakarta.* APIs instead of legacy javax.* APIs.
+
+## Packaging and Deployment
+
+- The `infrastructure` module is packaged as a WAR (`<packaging>war</packaging>`); `domain` and `application` remain JAR modules.
+- The Spring Boot entry point extends `SpringBootServletInitializer` so the WAR can be deployed to an external servlet container.
+- The embedded Tomcat starter is declared with `provided` scope: it is used to run the executable WAR locally and in tests, and must not take precedence over the classes of the target container.
+- Container-specific descriptors live in `infrastructure/src/main/webapp/WEB-INF/` (currently `weblogic.xml`).
+- The intended deployment target is Oracle WebLogic Server 15.1.1. A manual lab deployment was verified on 2026-10-20 (RHEL 9.8 VM, JDK 21.0.12.1); this confirms the tested WAR starts and serves the exercised endpoints in that environment, not production certification or automated deployment. Keep Maven build evidence and server validation distinct.
 
 ## Project Structure
 
@@ -131,7 +141,7 @@ infrastructure/api/rest → application input ports
 ## API Documentation (Swagger)
 
 - Document the REST API with Swagger / OpenAPI using springdoc-openapi.
-- Use a springdoc-openapi version that is compatible with Spring Boot 4.1.1. Verify the version before adding the dependency.
+- Use a springdoc-openapi version that is compatible with Spring Boot 3.5.16 (the 2.x line). Verify the version before changing the dependency.
 - This is the only additional documentation library explicitly approved, as an exception to the rule about additional frameworks.
 - Annotate controllers and DTOs so every endpoint documents its summary, parameters, request body, responses and error codes.
 - Keep the Swagger UI and the OpenAPI JSON available in the `local`, `dev` and `qa` profiles. Disable them in `prd` unless explicitly requested.

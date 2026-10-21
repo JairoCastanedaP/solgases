@@ -8,11 +8,10 @@ import java.io.Console;
  * the process list or the logs.
  */
 public class ConsolePasswordPrompt implements PasswordPrompt {
-
     @Override
     public char[] readPassword(String prompt) {
         Console console = System.console();
-        if (console == null || !console.isTerminal()) {
+        if (console == null) {
             throw new IllegalStateException("Credential commands need an interactive terminal to read the password");
         }
         char[] password = console.readPassword("%s", prompt);

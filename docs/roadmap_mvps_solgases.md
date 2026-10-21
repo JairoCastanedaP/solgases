@@ -4,7 +4,7 @@
 
 El proyecto se divide en incrementos funcionales para evitar intentar construir toda la solución en una sola etapa.
 
-El **MVP 1 será exclusivamente backend**, de acuerdo con el alcance actual del curso y con el hecho de que `lineamientos.md` define Java 25, Spring Boot 4.1.1, Maven, JPA, MySQL, REST, JUnit, Bean Validation, OpenAPI y Postman como base técnica. fileciteturn0file0L10-L20
+El **MVP 1 será exclusivamente backend**, de acuerdo con el alcance actual del curso y con el hecho de que `lineamientos.md` define Java 21, Spring Boot 3.5.16, Maven, JPA, MySQL, REST, JUnit, Bean Validation, OpenAPI y Postman como base técnica. fileciteturn0file0L10-L20
 
 Los MVP posteriores incorporan progresivamente frontend, experiencia de cliente, chatbot e integración con WhatsApp.
 
@@ -20,9 +20,9 @@ Construir la primera versión funcional del backend de SOLGASES, proporcionando 
 
 ### 1. Base del proyecto
 
-- Java 25.
-- Spring Boot 4.1.1.
-- Maven 3.9+.
+- Java 21.
+- Spring Boot 3.5.16 (Spring Security 6.x gestionado por Spring Boot).
+- Maven 3.9+, multimódulo, con empaquetado WAR en `infrastructure`.
 - MySQL.
 - Spring Data JPA.
 - Bean Validation.
@@ -460,7 +460,7 @@ Integrar Spring Security, autenticación local con JWT y autorización por polí
 
 ## Incremento 8 — DevOps: CI/CD, Docker y despliegue
 
-Integrar Git con un pipeline Jenkins que ejecute build, pruebas, cobertura y análisis SonarQube; crear y publicar imágenes Docker sin secretos; automatizar despliegue, smoke tests, rollback, logs y monitoreo básico. WebLogic es el destino preferido, sujeto a una prueba previa: Spring Boot 4.1.1 requiere Servlet 6.1+, mientras que la documentación de WebLogic 15c (15.1.1) declara Jakarta EE 9.1 / Servlet 5.0. La versión de WebLogic disponible debe confirmarse antes de definir el WAR como ruta de despliegue obligatoria. Ver [detalle y referencias de compatibilidad](mvp1.md#incremento-8--devops-ci-cd-docker-y-despliegue).
+Integrar Git con un pipeline Jenkins que ejecute build, pruebas, cobertura y análisis SonarQube; crear y publicar imágenes Docker sin secretos; automatizar despliegue, smoke tests, rollback, logs y monitoreo básico. WebLogic 15.1.1 es el destino previsto. Como Spring Boot 4.1.1 requiere Servlet 6.1+ y WebLogic 15c (15.1.1) declara compatibilidad Jakarta EE 9.1, el proyecto se migró a Java 21 y Spring Boot 3.5.16, y `infrastructure` se empaqueta como WAR. El 2026-10-20 se desplegó manualmente en WebLogic 15.1.1 sobre una VM RHEL 9.8: la aplicación quedó activa y respondieron Swagger UI y consultas autenticadas a productos y roles. Esta validación de laboratorio no es certificación de producción; Jenkins, el análisis de dependencias y el despliegue automatizado siguen pendientes. Ver [detalle y referencias de compatibilidad](mvp1.md#incremento-8--devops-ci-cd-docker-y-despliegue).
 
 ## 2. Mantener el dominio preparado para crecer
 
@@ -511,7 +511,7 @@ El chatbot debe construirse cuando el catálogo y sus datos sean suficientemente
 
 # Relación con `lineamientos.md`
 
-El roadmap debe conservar las reglas técnicas actuales: Java 25, Spring Boot 4.1.1, Spring Data JPA, MySQL, REST, JUnit 5, Bean Validation, OpenAPI y Postman. fileciteturn0file0L10-L20
+El roadmap debe conservar las reglas técnicas actuales: Java 21, Spring Boot 3.5.16, Spring Data JPA, MySQL, REST, JUnit 5, Bean Validation, OpenAPI y Postman. fileciteturn0file0L10-L20
 
 También debe respetar la organización por features, el uso de DTOs, constructor injection, separación de responsabilidades y acceso a persistencia mediante repositories. fileciteturn0file0L30-L44 fileciteturn0file0L58-L65 fileciteturn0file0L77-L82
 

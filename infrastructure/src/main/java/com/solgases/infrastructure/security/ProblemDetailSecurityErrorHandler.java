@@ -13,7 +13,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Writes 401 and 403 responses of the security filter chain as RFC 9457 ProblemDetail documents, the
@@ -25,10 +25,10 @@ public class ProblemDetailSecurityErrorHandler implements AuthenticationEntryPoi
     static final String UNAUTHORIZED_DETAIL = "Authentication is required to access this resource";
     static final String FORBIDDEN_DETAIL = "You do not have permission to access this resource";
 
-    private final JsonMapper jsonMapper;
+    private final ObjectMapper objectMapper;
 
-    public ProblemDetailSecurityErrorHandler(JsonMapper jsonMapper) {
-        this.jsonMapper = jsonMapper;
+    public ProblemDetailSecurityErrorHandler(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -55,6 +55,6 @@ public class ProblemDetailSecurityErrorHandler implements AuthenticationEntryPoi
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
-        jsonMapper.writeValue(response.getOutputStream(), problem);
+        objectMapper.writeValue(response.getOutputStream(), problem);
     }
 }

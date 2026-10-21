@@ -44,7 +44,7 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
             PermissionMatrixAuthorizationManager permissionMatrixAuthorizationManager,
             CurrentUserAuthenticationConverter currentUserAuthenticationConverter,
-            ProblemDetailSecurityErrorHandler errorHandler) {
+            ProblemDetailSecurityErrorHandler errorHandler) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
