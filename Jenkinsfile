@@ -59,6 +59,41 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy to WebLogic') {
+            steps {
+                sshagent(credentials: ['weblogic-vm-ssh']) {
+                    withCredentials([file(credentialsId: 'weblogic-known-hosts', variable: 'WEBLOGIC_KNOWN_HOSTS')]) {
+                        sh '''
+                            set -eu
+
+                            WAR_FILE="$WORKSPACE/infrastructure/target/infrastructure-0.0.1-SNAPSHOT.war"
+                            REMOTE="jairo@192.168.122.148"
+                            REMOTE_DIR="/home/jairo/deploy/solgases"
+                            KNOWN_HOSTS_ARGS="-o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$WEBLOGIC_KNOWN_HOSTS"
+
+                            test -f "$WAR_FILE"
+
+                            ssh $KNOWN_HOSTS_ARGS "$REMOTE" "mkdir -p '$REMOTE_DIR' && chmod 700 '$REMOTE_DIR'"
+                            scp $KNOWN_HOSTS_ARGS "$WAR_FILE" "$REMOTE:$REMOTE_DIR/infrastructure.war"
+                            scp $KNOWN_HOSTS_ARGS "$WORKSPACE/deployment/weblogic_deploy.py" "$REMOTE:$REMOTE_DIR/deploy.py"
+
+                            ssh $KNOWN_HOSTS_ARGS "$REMOTE" \
+                                "test -r /home/jairo/.wlst/solgases-userconfig.secure && \
+                                 test -r /home/jairo/.wlst/solgases-userkey.secure && \
+                                 WLS_USER_CONFIG=/home/jairo/.wlst/solgases-userconfig.secure \
+                                 WLS_USER_KEY=/home/jairo/.wlst/solgases-userkey.secure \
+                                 WLS_ADMIN_URL=t3://localhost:7001 \
+                                 WLS_APP_NAME=solgases \
+                                 WLS_APP_TARGET=AdminServer \
+                                 WLS_WAR_PATH='$REMOTE_DIR/infrastructure.war' \
+                                 /home/jairo/Oracle/Middleware/Oracle_Home/oracle_common/common/bin/wlst.sh \
+                                 '$REMOTE_DIR/deploy.py'"
+                        '''
+                    }
+                }
+            }
+        }
     }
 
     post {
