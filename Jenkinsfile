@@ -37,6 +37,28 @@ pipeline {
                 sh 'mvn -B -DskipTests verify'
             }
         }
+
+        stage('SonarQube analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube SOLGASES') {
+                    sh 'mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar'
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    script {
+                        def qualityGate = waitForQualityGate(abortPipeline: false)
+                        echo "SonarQube Quality Gate: ${qualityGate.status}"
+                        if (qualityGate.status != 'OK') {
+                            unstable("SonarQube Quality Gate: ${qualityGate.status}")
+                        }
+                    }
+                }
+            }
+        }
     }
 
     post {
