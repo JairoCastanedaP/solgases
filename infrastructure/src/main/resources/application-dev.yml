@@ -1,4 +1,6 @@
 spring:
+  datasource:
+    jndi-name: jdbc/solgases
   jpa:
     hibernate:
       ddl-auto: update
