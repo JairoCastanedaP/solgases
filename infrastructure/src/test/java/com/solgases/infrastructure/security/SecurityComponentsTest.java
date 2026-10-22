@@ -50,7 +50,8 @@ class SecurityComponentsTest {
         CurrentUserAuthenticationConverter converter = new CurrentUserAuthenticationConverter(access);
 
         for (String subject : new String[] {"5", "6", "not-a-number"}) {
-            assertThatThrownBy(() -> converter.convert(jwt(subject)))
+            Jwt token = jwt(subject);
+            assertThatThrownBy(() -> converter.convert(token))
                     .isInstanceOf(BadCredentialsException.class)
                     .hasMessage("The access token is not valid");
         }

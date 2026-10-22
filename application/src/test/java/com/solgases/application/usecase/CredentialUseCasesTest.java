@@ -82,7 +82,7 @@ class CredentialUseCasesTest {
         assertThat(saved.getValue().roles()).containsExactly(ADMIN_ROLE);
         ArgumentCaptor<CharSequence> rawPassword = ArgumentCaptor.forClass(CharSequence.class);
         verify(passwordHashEncoder).encode(rawPassword.capture());
-        assertThat(rawPassword.getValue().toString()).isEqualTo(PASSWORD);
+        assertThat(rawPassword.getValue()).hasToString(PASSWORD);
         verify(credentialPersistencePort).saveNew(7L, HASH);
     }
 
@@ -90,7 +90,8 @@ class CredentialUseCasesTest {
     void firstAdministratorIsRefusedWhenAnActiveAdministratorExists() {
         when(userPersistencePort.existsActiveUserWithRole(ADMIN_KEY)).thenReturn(true);
 
-        assertThatThrownBy(() -> createFirstAdministrator.execute(firstAdministrator()))
+        FirstAdministratorCommand command = firstAdministrator();
+        assertThatThrownBy(() -> createFirstAdministrator.execute(command))
                 .isInstanceOf(FirstAdministratorAlreadyExistsException.class);
 
         verify(userPersistencePort, never()).saveNew(any());
@@ -103,7 +104,8 @@ class CredentialUseCasesTest {
         when(userPersistencePort.existsActiveUserWithRole(ADMIN_KEY)).thenReturn(false);
         when(rolePersistencePort.findByKey(ADMIN_KEY)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> createFirstAdministrator.execute(firstAdministrator()))
+        FirstAdministratorCommand command = firstAdministrator();
+        assertThatThrownBy(() -> createFirstAdministrator.execute(command))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(ADMIN_KEY);
         verify(userPersistencePort, never()).saveNew(any());
@@ -115,7 +117,8 @@ class CredentialUseCasesTest {
         when(rolePersistencePort.findByKey(ADMIN_KEY)).thenReturn(Optional.of(ADMIN_ROLE));
         when(userPersistencePort.existsByUsername("synthetic-admin")).thenReturn(true);
 
-        assertThatThrownBy(() -> createFirstAdministrator.execute(firstAdministrator()))
+        FirstAdministratorCommand command = firstAdministrator();
+        assertThatThrownBy(() -> createFirstAdministrator.execute(command))
                 .isInstanceOf(DuplicateUsernameException.class);
         verify(credentialPersistencePort, never()).saveNew(any(), anyString());
     }
@@ -140,8 +143,9 @@ class CredentialUseCasesTest {
                 .thenReturn(Optional.of(new User(9L, "synthetic-user", "Synthetic User", true, Set.of(), null, null)));
         when(credentialPersistencePort.existsByUserId(9L)).thenReturn(true);
 
-        assertThatThrownBy(() -> provisionUserCredential.execute(
-                new CredentialProvisioningCommand("synthetic-user", PASSWORD.toCharArray())))
+        CredentialProvisioningCommand command = new CredentialProvisioningCommand("synthetic-user",
+                PASSWORD.toCharArray());
+        assertThatThrownBy(() -> provisionUserCredential.execute(command))
                 .isInstanceOf(CredentialAlreadyExistsException.class)
                 .hasMessageContaining("password change flow");
         verify(credentialPersistencePort, never()).saveNew(any(), anyString());
@@ -152,8 +156,9 @@ class CredentialUseCasesTest {
     void provisioningFailsForAnUnknownUsernameWithoutRevealingIt() {
         when(userPersistencePort.findByUsername("synthetic-missing")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> provisionUserCredential.execute(
-                new CredentialProvisioningCommand("synthetic-missing", PASSWORD.toCharArray())))
+        CredentialProvisioningCommand command = new CredentialProvisioningCommand("synthetic-missing",
+                PASSWORD.toCharArray());
+        assertThatThrownBy(() -> provisionUserCredential.execute(command))
                 .isInstanceOf(UnknownUsernameException.class)
                 .hasMessageNotContaining("synthetic-missing");
     }
@@ -162,9 +167,11 @@ class CredentialUseCasesTest {
     void passwordsOutsideThePolicyAreRejectedBeforeAnyUseCaseRuns() {
         assertThatThrownBy(() -> new FirstAdministratorCommand("a", "b", new char[0]))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new FirstAdministratorCommand("a", "b", "x".repeat(14).toCharArray()))
+        char[] tooShort = "x".repeat(14).toCharArray();
+        assertThatThrownBy(() -> new FirstAdministratorCommand("a", "b", tooShort))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new CredentialProvisioningCommand("a", "x".repeat(129).toCharArray()))
+        char[] tooLong = "x".repeat(129).toCharArray();
+        assertThatThrownBy(() -> new CredentialProvisioningCommand("a", tooLong))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new CredentialProvisioningCommand("a", null))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -182,7 +189,7 @@ class CredentialUseCasesTest {
 
         ArgumentCaptor<CharSequence> rawPassword = ArgumentCaptor.forClass(CharSequence.class);
         verify(passwordHashEncoder).encode(rawPassword.capture());
-        assertThat(rawPassword.getValue().toString()).isEqualTo(exact);
+        assertThat(rawPassword.getValue()).hasToString(exact);
     }
 
     @Test

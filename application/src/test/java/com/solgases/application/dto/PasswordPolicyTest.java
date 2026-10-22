@@ -52,7 +52,8 @@ class PasswordPolicyTest {
     @ValueSource(ints = {14, 129})
     void unicodeOutsideTheLimitsIsRejected(int length) {
         // 14 code points are 28 UTF-16 units: counting units instead of code points would accept them
-        assertThatThrownBy(() -> PasswordPolicy.requireValidNewPassword(repeat(SUPPLEMENTARY, length)))
+        char[] password = repeat(SUPPLEMENTARY, length);
+        assertThatThrownBy(() -> PasswordPolicy.requireValidNewPassword(password))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

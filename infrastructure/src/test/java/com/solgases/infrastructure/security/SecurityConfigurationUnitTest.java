@@ -26,13 +26,18 @@ class SecurityConfigurationUnitTest {
         String shortKey = Base64.getEncoder().encodeToString("too-short-key".getBytes());
         String malformed = "not base64 !" + UUID.randomUUID();
 
-        assertThatThrownBy(() -> JwtConfiguration.signingKey(withSecret(null)))
+        SecurityProperties missing = withSecret(null);
+        SecurityProperties blank = withSecret(" ");
+        SecurityProperties malformedSecret = withSecret(malformed);
+        SecurityProperties shortSecret = withSecret(shortKey);
+
+        assertThatThrownBy(() -> JwtConfiguration.signingKey(missing))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("not configured");
-        assertThatThrownBy(() -> JwtConfiguration.signingKey(withSecret(" ")))
+        assertThatThrownBy(() -> JwtConfiguration.signingKey(blank))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("not configured");
-        assertThatThrownBy(() -> JwtConfiguration.signingKey(withSecret(malformed)))
+        assertThatThrownBy(() -> JwtConfiguration.signingKey(malformedSecret))
                 .isInstanceOf(IllegalStateException.class).hasMessageNotContaining(malformed);
-        assertThatThrownBy(() -> JwtConfiguration.signingKey(withSecret(shortKey)))
+        assertThatThrownBy(() -> JwtConfiguration.signingKey(shortSecret))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("256 bits")
                 .hasMessageNotContaining(shortKey);

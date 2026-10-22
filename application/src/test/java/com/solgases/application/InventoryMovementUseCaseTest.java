@@ -148,8 +148,9 @@ class InventoryMovementUseCaseTest {
         when(persistence.findByProductId(1L))
                 .thenReturn(Optional.of(Inventory.empty(1L).withQuantity(Inventory.MAX_QUANTITY)));
 
-        assertThatThrownBy(() -> new RegisterInventoryEntryService(persistence).execute(1L,
-                new InventoryMovementCommand(new BigDecimal("0.001"), "Purchase", "user")))
+        RegisterInventoryEntryService service = new RegisterInventoryEntryService(persistence);
+        InventoryMovementCommand command = new InventoryMovementCommand(new BigDecimal("0.001"), "Purchase", "user");
+        assertThatThrownBy(() -> service.execute(1L, command))
                 .isExactlyInstanceOf(ConflictException.class)
                 .hasMessage("Stock for product 1 would exceed the maximum supported quantity 999999999999.999: "
                         + "available 999999999999.999, requested 0.001")
@@ -163,8 +164,10 @@ class InventoryMovementUseCaseTest {
         when(persistence.findByProductId(1L))
                 .thenReturn(Optional.of(Inventory.empty(1L).withQuantity(new BigDecimal("999999999999"))));
 
-        assertThatThrownBy(() -> new RegisterInventoryAdjustmentService(persistence).execute(1L,
-                new InventoryAdjustmentCommand(BigDecimal.ONE, MovementDirection.INCREASE, "Count", "user")))
+        RegisterInventoryAdjustmentService service = new RegisterInventoryAdjustmentService(persistence);
+        InventoryAdjustmentCommand command =
+                new InventoryAdjustmentCommand(BigDecimal.ONE, MovementDirection.INCREASE, "Count", "user");
+        assertThatThrownBy(() -> service.execute(1L, command))
                 .isExactlyInstanceOf(ConflictException.class)
                 .hasMessageStartingWith("Stock for product 1 would exceed the maximum supported quantity");
         verify(persistence, never()).saveInventory(anyLong(), any());
