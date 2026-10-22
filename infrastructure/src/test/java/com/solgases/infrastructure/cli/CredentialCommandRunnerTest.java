@@ -219,9 +219,9 @@ class CredentialCommandRunnerTest {
     @Test
     void mismatchedConfirmationStoresNothingAndClearsBothAnswers() {
         ScriptedPasswordPrompt prompt = new ScriptedPasswordPrompt(randomPassword(), randomPassword());
+        String username = syntheticUsername();
 
-        assertThatThrownBy(() -> run(CredentialCommand.CREATE_FIRST_ADMIN, syntheticUsername(), "Synthetic Admin",
-                prompt))
+        assertThatThrownBy(() -> run(CredentialCommand.CREATE_FIRST_ADMIN, username, "Synthetic Admin", prompt))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("The passwords do not match");
 
@@ -233,9 +233,10 @@ class CredentialCommandRunnerTest {
     void passwordsOutsideThePolicyStoreNothingAndAreCleared() {
         for (String outside : List.of("x".repeat(14), "x".repeat(129))) {
             ScriptedPasswordPrompt prompt = new ScriptedPasswordPrompt(outside, outside);
+            String username = syntheticUsername();
 
-            assertThatThrownBy(() -> run(CredentialCommand.CREATE_FIRST_ADMIN, syntheticUsername(),
-                    "Synthetic Admin", prompt))
+            assertThatThrownBy(() -> run(CredentialCommand.CREATE_FIRST_ADMIN, username, "Synthetic Admin",
+                    prompt))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("The password must have between 15 and 128 characters");
             assertThat(prompt.allCleared()).isTrue();
@@ -271,7 +272,8 @@ class CredentialCommandRunnerTest {
         assertThatThrownBy(() -> run(CredentialCommand.CREATE_FIRST_ADMIN, " ", "Synthetic Admin", prompt))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("solgases.credentials.username");
-        assertThatThrownBy(() -> run(CredentialCommand.CREATE_FIRST_ADMIN, syntheticUsername(), null, prompt))
+        String username = syntheticUsername();
+        assertThatThrownBy(() -> run(CredentialCommand.CREATE_FIRST_ADMIN, username, null, prompt))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("solgases.credentials.display-name");
         assertThat(userRepository.count()).isZero();
@@ -283,7 +285,8 @@ class CredentialCommandRunnerTest {
         CredentialCommandRunner webRunner = runner(CredentialCommand.CREATE_FIRST_ADMIN, syntheticUsername(),
                 "Synthetic Admin", prompt, mock(WebServerApplicationContext.class));
 
-        assertThatThrownBy(() -> webRunner.run(new DefaultApplicationArguments()))
+        DefaultApplicationArguments arguments = new DefaultApplicationArguments();
+        assertThatThrownBy(() -> webRunner.run(arguments))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("without a web server");
         assertThat(userRepository.count()).isZero();

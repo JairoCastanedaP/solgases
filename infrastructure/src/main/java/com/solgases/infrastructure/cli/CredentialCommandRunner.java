@@ -6,7 +6,7 @@ import com.solgases.application.port.in.CreateFirstAdministratorUseCase;
 import com.solgases.application.port.in.ProvisionUserCredentialUseCase;
 import com.solgases.domain.model.User;
 import java.util.Arrays;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -54,19 +54,19 @@ public class CredentialCommandRunner implements ApplicationRunner {
         switch (command) {
             case CREATE_FIRST_ADMIN -> {
                 requireText(displayName, "solgases.credentials.display-name", User.DISPLAY_NAME_MAX_LENGTH);
-                Long userId = withConfirmedPassword(password -> createFirstAdministratorUseCase.execute(
+                long userId = withConfirmedPassword(password -> createFirstAdministratorUseCase.execute(
                         new FirstAdministratorCommand(username, displayName, password)));
                 log.info("First administrator created with user id {}", userId);
             }
             case PROVISION_CREDENTIAL -> {
-                Long userId = withConfirmedPassword(password -> provisionUserCredentialUseCase.execute(
+                long userId = withConfirmedPassword(password -> provisionUserCredentialUseCase.execute(
                         new CredentialProvisioningCommand(username, password)));
                 log.info("Credential provisioned for user id {}", userId);
             }
         }
     }
 
-    private Long withConfirmedPassword(Function<char[], Long> action) {
+    private long withConfirmedPassword(ToLongFunction<char[]> action) {
         char[] password = passwordPrompt.readPassword("Password: ");
         char[] confirmation = null;
         try {
@@ -74,7 +74,7 @@ public class CredentialCommandRunner implements ApplicationRunner {
             if (!Arrays.equals(password, confirmation)) {
                 throw new IllegalArgumentException("The passwords do not match");
             }
-            return action.apply(password);
+            return action.applyAsLong(password);
         } finally {
             clear(password);
             clear(confirmation);

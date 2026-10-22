@@ -13,6 +13,7 @@ import com.solgases.infrastructure.api.rest.AuthenticationController;
 import com.solgases.infrastructure.security.PermissionMatrixAuthorizationManager;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -36,6 +37,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 class AuthorizationCatalogIntegrationTest {
 
     private static final String REST_PACKAGE = "com.solgases.infrastructure.api.rest";
+    private static final Pattern PATH_VARIABLE = Pattern.compile("\\{[^}]+}");
 
     @DynamicPropertySource
     static void securityProperties(DynamicPropertyRegistry registry) {
@@ -73,7 +75,7 @@ class AuthorizationCatalogIntegrationTest {
                     continue;
                 }
                 operations.add(operation);
-                MockHttpServletRequest request = new MockHttpServletRequest(method, path.replaceAll("\\{[^}]+}", "1"));
+                MockHttpServletRequest request = new MockHttpServletRequest(method, PATH_VARIABLE.matcher(path).replaceAll("1"));
                 if (!authorizationManager.authorize(() -> authentication, new RequestAuthorizationContext(request))
                         .isGranted()) {
                     uncovered.add(operation);

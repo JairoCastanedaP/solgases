@@ -74,7 +74,19 @@ Las rutas públicas de autenticación no requieren JWT. Las rutas protegidas val
 | Autorización | Matriz de permisos consultada en cada petición; rechazo cerrado |
 | Sesiones | API sin estado (stateless) |
 | CORS | Deshabilitado mientras no se definan orígenes de cliente |
+| CSRF | Deshabilitado; ver evidencia para el hotspot de SonarQube más abajo |
 | WebLogic | Perfil `dev`, JNDI `jdbc/solgases`; secretos fuera del WAR |
+
+**Evidencia para revisar el hotspot `java:S4502` (CSRF deshabilitado en `SecurityConfiguration`).** CSRF explota credenciales que el navegador adjunta de forma automática (cookies de sesión, autenticación HTTP Basic o formulario). En esta API:
+
+- `sessionCreationPolicy(SessionCreationPolicy.STATELESS)`: Spring Security no crea ni usa `HttpSession` para autenticar.
+- `httpBasic`, `formLogin`, `logout` y `requestCache` están deshabilitados; no hay autenticación por cookie ni recordatorio de sesión.
+- El único mecanismo de autenticación es el resource server JWT (`oauth2ResourceServer().jwt()`) con el `BearerTokenResolver` por defecto, que solo lee la cabecera `Authorization: Bearer` (no admite token en parámetros de URL ni en cuerpos de formulario); no hay un resolver personalizado.
+- `POST /api/auth/token` devuelve el token en el cuerpo JSON (`AccessTokenResponse`, `tokenType` `Bearer`) y no emite `Set-Cookie`; el cliente debe adjuntarlo de forma explícita.
+- CORS no se considera una protección contra CSRF. La justificación se basa en que la API no usa credenciales que el navegador adjunte automáticamente; el cliente envía el JWT explícitamente en la cabecera Authorization: Bearer.
+- `SecurityIntegrationTest` usa la cabecera `Authorization: Bearer` y verifica `WWW-Authenticate: Bearer` en 401.
+
+Esa justificación es válida mientras el token no se transporte en cookies ni se introduzcan sesiones o autenticación Basic/formulario; cualquiera de esos cambios obliga a reactivar CSRF. La revisión y el cambio de estado del hotspot se hacen en la interfaz de SonarQube.
 
 La matriz de evaluación menciona BCrypt. La implementación y las decisiones del MVP describen Argon2id. Se debe confirmar con el docente si la rúbrica exige BCrypt antes de cambiar el diseño.
 

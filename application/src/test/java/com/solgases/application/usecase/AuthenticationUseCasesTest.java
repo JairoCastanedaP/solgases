@@ -58,7 +58,8 @@ class AuthenticationUseCasesTest {
     void passwordAboveTheMaximumFailsGenericallyWithoutLookupOrHashing() {
         // 129 ASCII characters, and 129 supplementary code points (258 UTF-16 units)
         for (String oversized : List.of("x".repeat(129), "\uD83D\uDD12".repeat(129))) {
-            assertThatThrownBy(() -> authenticate.execute(new AuthenticationCommand("jdoe", oversized)))
+            AuthenticationCommand command = new AuthenticationCommand("jdoe", oversized);
+            assertThatThrownBy(() -> authenticate.execute(command))
                     .isExactlyInstanceOf(AuthenticationFailedException.class);
         }
 
@@ -80,7 +81,8 @@ class AuthenticationUseCasesTest {
     void unknownUsernameFailsAfterADummyVerification() {
         when(credentialPersistencePort.findByUsername("ghost")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authenticate.execute(new AuthenticationCommand("ghost", "secret-value")))
+        AuthenticationCommand command = new AuthenticationCommand("ghost", "secret-value");
+        assertThatThrownBy(() -> authenticate.execute(command))
                 .isExactlyInstanceOf(AuthenticationFailedException.class)
                 .hasMessage("Invalid username or password");
         verify(passwordHashVerifier).verifyAgainstDummyHash("secret-value");
@@ -92,7 +94,8 @@ class AuthenticationUseCasesTest {
         when(credentialPersistencePort.findByUsername("jdoe")).thenReturn(Optional.of(new StoredCredential(5L, HASH)));
         when(passwordHashVerifier.matches("wrong-value", HASH)).thenReturn(false);
 
-        assertThatThrownBy(() -> authenticate.execute(new AuthenticationCommand("jdoe", "wrong-value")))
+        AuthenticationCommand command = new AuthenticationCommand("jdoe", "wrong-value");
+        assertThatThrownBy(() -> authenticate.execute(command))
                 .isExactlyInstanceOf(AuthenticationFailedException.class)
                 .hasMessage("Invalid username or password");
         verify(userPersistencePort, never()).findById(any());
@@ -104,8 +107,9 @@ class AuthenticationUseCasesTest {
         when(passwordHashVerifier.matches("secret-value", HASH)).thenReturn(true);
         when(userPersistencePort.findById(5L)).thenReturn(Optional.of(user(false)), Optional.empty());
 
+        AuthenticationCommand command = new AuthenticationCommand("jdoe", "secret-value");
         for (int attempt = 0; attempt < 2; attempt++) {
-            assertThatThrownBy(() -> authenticate.execute(new AuthenticationCommand("jdoe", "secret-value")))
+            assertThatThrownBy(() -> authenticate.execute(command))
                     .isExactlyInstanceOf(AuthenticationFailedException.class);
         }
     }

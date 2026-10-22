@@ -8,13 +8,13 @@ import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 /**
  * Issues HS256 access tokens valid for 15 minutes. The token only identifies the user (subject); roles and
  * permissions are not included, because they are resolved from persistence on every protected request.
  */
-@Component
+@Service
 public class AccessTokenService {
 
     public static final Duration ACCESS_TOKEN_TTL = Duration.ofMinutes(15);
