@@ -15,9 +15,9 @@ public record CredentialProvisioningCommand(String username, char[] password) {
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof CredentialProvisioningCommand command
-                && Objects.equals(username, command.username)
-                && Arrays.equals(password, command.password);
+        return other instanceof CredentialProvisioningCommand(String otherUsername, char[] otherPassword)
+                && Objects.equals(username, otherUsername)
+                && Arrays.equals(password, otherPassword);
     }
 
     @Override

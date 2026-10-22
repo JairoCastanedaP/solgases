@@ -15,10 +15,11 @@ public record FirstAdministratorCommand(String username, String displayName, cha
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof FirstAdministratorCommand command
-                && Objects.equals(username, command.username)
-                && Objects.equals(displayName, command.displayName)
-                && Arrays.equals(password, command.password);
+        return other instanceof FirstAdministratorCommand(String otherUsername, String otherDisplayName,
+                char[] otherPassword)
+                && Objects.equals(username, otherUsername)
+                && Objects.equals(displayName, otherDisplayName)
+                && Arrays.equals(password, otherPassword);
     }
 
     @Override
