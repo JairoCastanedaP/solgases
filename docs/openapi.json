@@ -1,0 +1,4128 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SOLGASES API",
+    "description": "Backend API for catalog, inventory and user/role/permission administration",
+    "version": "0.0.1"
+  },
+  "servers": [
+    {
+      "url": "/infrastructure",
+      "description": "WebLogic 15.1.1 deployment: context root /infrastructure (host and port depend on the environment)"
+    },
+    {
+      "url": "http://localhost:8080",
+      "description": "Local executable WAR with the local profile (Spring Boot default port; no server.port is configured)"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Permissions",
+      "description": "Administration of permissions. No authentication is applied yet: intended for local development use only."
+    },
+    {
+      "name": "Products",
+      "description": "Management of the product catalog"
+    },
+    {
+      "name": "Roles",
+      "description": "Administration of roles and their permissions. No authentication is applied yet: intended for local development use only."
+    },
+    {
+      "name": "Authentication",
+      "description": "Access tokens for internal users"
+    },
+    {
+      "name": "Categories",
+      "description": "Management of product categories"
+    },
+    {
+      "name": "Inventory",
+      "description": "Stock and inventory movements of a product"
+    },
+    {
+      "name": "Units of measure",
+      "description": "Management of the catalog of units of measure"
+    },
+    {
+      "name": "Users",
+      "description": "Administration of internal users and their roles. No authentication is applied yet: intended for local development use only."
+    }
+  ],
+  "paths": {
+    "/api/users/{id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get a user by id",
+        "operationId": "findById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "USER_READ"
+      },
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Update a user",
+        "description": "Replaces username, display name and roles. The active flag is not modified; use the activate and deactivate operations for that.",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "User updated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id or request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User or one or more roles not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another user already uses the same username",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "USER_WRITE"
+      }
+    },
+    "/api/units-of-measure/{id}": {
+      "get": {
+        "tags": [
+          "Units of measure"
+        ],
+        "summary": "Get a unit of measure by id",
+        "operationId": "findById_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Unit of measure identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unit of measure found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitOfMeasureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unit of measure not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_READ"
+      },
+      "put": {
+        "tags": [
+          "Units of measure"
+        ],
+        "summary": "Update a unit of measure",
+        "description": "Replaces the editable data (code and name). The active flag is not modified; use the activate and deactivate operations for that.",
+        "operationId": "update_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Unit of measure identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitOfMeasureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Unit of measure updated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitOfMeasureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id or request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unit of measure not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another unit of measure already uses the same code",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_WRITE"
+      }
+    },
+    "/api/roles/{id}": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Get a role by id",
+        "operationId": "findById_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Role identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Role found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Role not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "ACCESS_READ"
+      },
+      "put": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Update a role",
+        "description": "Replaces the name and the permissions of the role. The key is never modified.",
+        "operationId": "update_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Role identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Role updated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id or request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Role or one or more permissions not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another role already uses the same name",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "ACCESS_WRITE"
+      }
+    },
+    "/api/products/{id}": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get a product by id",
+        "operationId": "findById_3",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Product identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_READ"
+      },
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Update a product",
+        "description": "Replaces the editable data of the product (sku, name, description, brand, reference, price, category and unit of measure). The active flag is not modified; use the activate and deactivate operations for that. The referenced category and unit of measure must exist and be active.",
+        "operationId": "update_3",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Product identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Product updated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id or request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product, category or unit of measure not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another product already uses the same SKU, or the referenced category or unit of measure is inactive",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_WRITE"
+      }
+    },
+    "/api/permissions/{id}": {
+      "get": {
+        "tags": [
+          "Permissions"
+        ],
+        "summary": "Get a permission by id",
+        "operationId": "findById_4",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Permission identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Permission found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Permission not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "ACCESS_READ"
+      },
+      "put": {
+        "tags": [
+          "Permissions"
+        ],
+        "summary": "Update a permission",
+        "description": "Replaces the code of the permission. The key is never modified.",
+        "operationId": "update_4",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Permission identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PermissionUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Permission updated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id or request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Permission not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another permission already uses the same code",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "ACCESS_WRITE"
+      }
+    },
+    "/api/categories/{id}": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Get a category by id",
+        "operationId": "findById_5",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Category identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_READ"
+      },
+      "put": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Update a category",
+        "description": "Replaces the editable data of the category (its name). The active flag is not modified; use the activate and deactivate operations for that.",
+        "operationId": "update_5",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Category identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id or request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another category already uses the same name",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_WRITE"
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "List users",
+        "description": "Returns all users, active and inactive, with their roles and permissions. No filtering, sorting or pagination is applied.",
+        "operationId": "findAll",
+        "responses": {
+          "200": {
+            "description": "List of users",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "USER_READ"
+      },
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Create a user",
+        "description": "Creates a new user with the given roles. It is always created active. The id is generated by the server.",
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "User created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body (blank or too long fields, missing roleIds or malformed JSON)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "One or more roles do not exist",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A user with the same username already exists",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "USER_WRITE"
+      }
+    },
+    "/api/units-of-measure": {
+      "get": {
+        "tags": [
+          "Units of measure"
+        ],
+        "summary": "List units of measure",
+        "description": "Returns all units of measure, both active and inactive.",
+        "operationId": "findAll_1",
+        "responses": {
+          "200": {
+            "description": "List of units of measure",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UnitOfMeasureResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_READ"
+      },
+      "post": {
+        "tags": [
+          "Units of measure"
+        ],
+        "summary": "Create a unit of measure",
+        "description": "Creates a new unit of measure. It is always created active. The id is generated by the server.",
+        "operationId": "create_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitOfMeasureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Unit of measure created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitOfMeasureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A unit of measure with the same code already exists",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_WRITE"
+      }
+    },
+    "/api/roles": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "List roles",
+        "description": "Returns all roles with their permissions. No filtering, sorting or pagination is applied.",
+        "operationId": "findAll_2",
+        "responses": {
+          "200": {
+            "description": "List of roles",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoleResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "ACCESS_READ"
+      },
+      "post": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Create a role",
+        "description": "Creates a role with its internal key, name and permissions (possibly none). The key cannot be changed afterwards.",
+        "operationId": "create_2",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Role created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "One or more permissions do not exist",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A role with the same key or name already exists",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "ACCESS_WRITE"
+      }
+    },
+    "/api/products": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "List and search products",
+        "description": "Returns products matching the given optional, combinable filters. With no filters, returns every product, active and inactive. No pagination or sorting is applied.",
+        "operationId": "findAll_3",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Partial, case-insensitive match on the product name",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "description": "Filter by category id",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "active",
+            "in": "query",
+            "description": "Filter by active state",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of products",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter value has an invalid format",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_READ"
+      },
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Create a product",
+        "description": "Creates a new product. It is always created active. The id is generated by the server. The referenced category and unit of measure must exist and be active.",
+        "operationId": "create_3",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Product created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The referenced category or unit of measure does not exist",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A product with the same SKU already exists, or the referenced category or unit of measure is inactive",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_WRITE"
+      }
+    },
+    "/api/products/{productId}/inventory/exits": {
+      "post": {
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Register a stock exit",
+        "description": "Decreases the current stock. Rejected if it would leave the stock negative.",
+        "operationId": "registerExit",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "description": "Product identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryMovementRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Exit registered",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryMovementResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The product is not active, the stock is insufficient, or a concurrent update was detected",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "INVENTORY_MOVE"
+      }
+    },
+    "/api/products/{productId}/inventory/entries": {
+      "post": {
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Register a stock entry",
+        "description": "Increases the current stock. Creates the Inventory row if this is the product's first movement.",
+        "operationId": "registerEntry",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "description": "Product identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryMovementRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Entry registered",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryMovementResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The product is not active, or a concurrent update was detected",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "INVENTORY_MOVE"
+      }
+    },
+    "/api/products/{productId}/inventory/adjustments": {
+      "post": {
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Register a stock adjustment",
+        "description": "Increases or decreases the current stock according to direction. A DECREASE adjustment is rejected if it would leave the stock negative.",
+        "operationId": "registerAdjustment",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "description": "Product identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryAdjustmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Adjustment registered",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryMovementResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The product is not active, the stock is insufficient, or a concurrent update was detected",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "INVENTORY_ADJUST"
+      }
+    },
+    "/api/permissions": {
+      "get": {
+        "tags": [
+          "Permissions"
+        ],
+        "summary": "List permissions",
+        "description": "Returns all permissions. No filtering, sorting or pagination is applied.",
+        "operationId": "findAll_4",
+        "responses": {
+          "200": {
+            "description": "List of permissions",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PermissionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "ACCESS_READ"
+      },
+      "post": {
+        "tags": [
+          "Permissions"
+        ],
+        "summary": "Create a permission",
+        "description": "Creates a permission with its internal key and code. The key cannot be changed afterwards.",
+        "operationId": "create_4",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PermissionCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Permission created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A permission with the same key or code already exists",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "ACCESS_WRITE"
+      }
+    },
+    "/api/categories": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "List categories",
+        "description": "Returns all categories, both active and inactive. No filtering, sorting or pagination is applied.",
+        "operationId": "findAll_5",
+        "responses": {
+          "200": {
+            "description": "List of categories",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_READ"
+      },
+      "post": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Create a category",
+        "description": "Creates a new category. It is always created active. The id is generated by the server.",
+        "operationId": "create_5",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Category created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body (blank name, name longer than 100 characters or malformed JSON)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A category with the same name already exists",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_WRITE"
+      }
+    },
+    "/api/auth/token": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Obtain an access token",
+        "description": "Authenticates an active internal user with username and password. Unknown users, wrong passwords and inactive users get the same 401 response.",
+        "operationId": "issueToken",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Access token issued",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid username or password",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "x-required-permission": null
+      }
+    },
+    "/api/users/{id}/deactivate": {
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Deactivate a user",
+        "description": "Marks the user as inactive. Idempotent: if it is already inactive, the current state is returned. Users are never deleted.",
+        "operationId": "deactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User is inactive",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "USER_WRITE"
+      }
+    },
+    "/api/users/{id}/activate": {
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Activate a user",
+        "description": "Marks the user as active. Idempotent: if it is already active, the current state is returned.",
+        "operationId": "activate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User is active",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "USER_WRITE"
+      }
+    },
+    "/api/units-of-measure/{id}/deactivate": {
+      "patch": {
+        "tags": [
+          "Units of measure"
+        ],
+        "summary": "Deactivate a unit of measure",
+        "description": "Marks the unit of measure as inactive. Idempotent: if it is already inactive, the current state is returned. Units of measure are never deleted. Deactivating a unit does not affect products that already use it.",
+        "operationId": "deactivate_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Unit of measure identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unit of measure is inactive",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitOfMeasureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unit of measure not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_WRITE"
+      }
+    },
+    "/api/units-of-measure/{id}/activate": {
+      "patch": {
+        "tags": [
+          "Units of measure"
+        ],
+        "summary": "Activate a unit of measure",
+        "description": "Marks the unit of measure as active. Idempotent: if it is already active, the current state is returned.",
+        "operationId": "activate_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Unit of measure identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unit of measure is active",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitOfMeasureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unit of measure not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_WRITE"
+      }
+    },
+    "/api/products/{id}/deactivate": {
+      "patch": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Deactivate a product",
+        "description": "Marks the product as inactive. Idempotent: if it is already inactive, the current state is returned. Products are never deleted in this increment.",
+        "operationId": "deactivate_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Product identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product is inactive",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_WRITE"
+      }
+    },
+    "/api/products/{id}/activate": {
+      "patch": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Activate a product",
+        "description": "Marks the product as active. Idempotent: if it is already active, the current state is returned.",
+        "operationId": "activate_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Product identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product is active",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_WRITE"
+      }
+    },
+    "/api/categories/{id}/deactivate": {
+      "patch": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Deactivate a category",
+        "description": "Marks the category as inactive. Idempotent: if it is already inactive, the current state is returned. Categories are never deleted.",
+        "operationId": "deactivate_3",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Category identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category is inactive",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_WRITE"
+      }
+    },
+    "/api/categories/{id}/activate": {
+      "patch": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Activate a category",
+        "description": "Marks the category as active. Idempotent: if it is already active, the current state is returned.",
+        "operationId": "activate_3",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Category identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category is active",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "CATALOG_WRITE"
+      }
+    },
+    "/api/products/{productId}/inventory": {
+      "get": {
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Get the current stock of a product",
+        "description": "Returns 0 if the product has no inventory movement yet; no record is created by this call.",
+        "operationId": "getCurrentQuantity",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "description": "Product identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current stock",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The product id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "INVENTORY_READ"
+      }
+    },
+    "/api/products/{productId}/inventory/movements": {
+      "get": {
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "List the inventory movements of a product",
+        "description": "Returns every movement registered for the product, most recent first.",
+        "operationId": "getMovements",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "description": "Product identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of movements",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InventoryMovementResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The product id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "INVENTORY_READ"
+      }
+    },
+    "/api/products/{productId}/inventory/movements/{movementId}": {
+      "get": {
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Get a single inventory movement of a product",
+        "operationId": "getMovement",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "description": "Product identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          },
+          {
+            "name": "movementId",
+            "in": "path",
+            "description": "Movement identifier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 42
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Movement found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryMovementResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The product id or movement id is not a valid number",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product or movement not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token, or inactive user",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have the permission required by this operation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error. The response does not include internal details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "INVENTORY_READ"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UserRequest": {
+        "type": "object",
+        "description": "Editable data of a user. The id and the active flag cannot be set by the client; a new user is always active. No password or credential is accepted.",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Unique username. Stored exactly as received (no trimming or normalization).",
+            "example": "jdoe",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Name shown for the user",
+            "example": "John Doe",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "roleIds": {
+            "type": "array",
+            "description": "Ids of existing roles. Replaces the current roles; an empty list removes them all.",
+            "items": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "displayName",
+          "roleIds",
+          "username"
+        ]
+      },
+      "PermissionResponse": {
+        "type": "object",
+        "description": "A permission",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Generated identifier",
+            "example": 1
+          },
+          "key": {
+            "type": "string",
+            "description": "Stable internal key",
+            "example": "PERMISSION_KEY"
+          },
+          "code": {
+            "type": "string",
+            "description": "Editable permission code",
+            "example": "permission.code"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Technical creation timestamp, assigned by the server"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Technical last-update timestamp, assigned by the server"
+          }
+        }
+      },
+      "RoleResponse": {
+        "type": "object",
+        "description": "A role with its permissions",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Generated identifier",
+            "example": 1
+          },
+          "key": {
+            "type": "string",
+            "description": "Stable internal key",
+            "example": "ROLE_KEY"
+          },
+          "name": {
+            "type": "string",
+            "description": "Editable role name",
+            "example": "Nombre del rol"
+          },
+          "permissions": {
+            "type": "array",
+            "description": "Permissions of the role, ordered by id. May be empty.",
+            "items": {
+              "$ref": "#/components/schemas/PermissionResponse"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Technical creation timestamp, assigned by the server"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Technical last-update timestamp, assigned by the server. It also changes when the permissions of the role change."
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "description": "An internal user with its roles and their permissions",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Generated identifier",
+            "example": 1
+          },
+          "username": {
+            "type": "string",
+            "description": "Unique username",
+            "example": "jdoe"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Name shown for the user",
+            "example": "John Doe"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether the user is active",
+            "example": true
+          },
+          "roles": {
+            "type": "array",
+            "description": "Roles of the user, ordered by id, each with its permissions. May be empty.",
+            "items": {
+              "$ref": "#/components/schemas/RoleResponse"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Technical creation timestamp, assigned by the server"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Technical last-update timestamp, assigned by the server. It also changes when the roles of the user change."
+          }
+        }
+      },
+      "ProblemDetail": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "properties": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {}
+          }
+        }
+      },
+      "UnitOfMeasureRequest": {
+        "type": "object",
+        "description": "Editable data of a unit of measure. The id and the active flag cannot be set by the client.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Short code. Stored exactly as received (no trimming or normalization). Must be unique; uniqueness ignores case and accents.",
+            "example": "UN",
+            "maxLength": 20,
+            "minLength": 0
+          },
+          "name": {
+            "type": "string",
+            "description": "Unit name. Not required to be unique.",
+            "example": "Unidad",
+            "maxLength": 100,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ]
+      },
+      "UnitOfMeasureResponse": {
+        "type": "object",
+        "description": "A unit of measure",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Generated identifier",
+            "example": 1
+          },
+          "code": {
+            "type": "string",
+            "description": "Short code",
+            "example": "UN"
+          },
+          "name": {
+            "type": "string",
+            "description": "Unit name",
+            "example": "Unidad"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether the unit is active",
+            "example": true
+          }
+        }
+      },
+      "RoleUpdateRequest": {
+        "type": "object",
+        "description": "Editable data of a role. The key cannot be changed.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Unique, editable role name",
+            "example": "Nombre del rol",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "permissionIds": {
+            "type": "array",
+            "description": "Ids of existing permissions. Replaces the current permissions; an empty list removes them all.",
+            "items": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "name",
+          "permissionIds"
+        ]
+      },
+      "ProductRequest": {
+        "type": "object",
+        "description": "Editable data of a product. The id and the active flag cannot be set by the client. Category and unit of measure are referenced by id.",
+        "properties": {
+          "sku": {
+            "type": "string",
+            "description": "Business identifier. Stored exactly as received (no trimming or normalization). Must be unique; uniqueness ignores case and accents.",
+            "example": "EPP-CASCO-001",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "name": {
+            "type": "string",
+            "description": "Product name",
+            "example": "Casco de seguridad",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description",
+            "example": "Casco de seguridad tipo I, ajuste con cricket",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "brand": {
+            "type": "string",
+            "description": "Optional brand",
+            "example": "3M",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "reference": {
+            "type": "string",
+            "description": "Optional manufacturer reference",
+            "example": "H-700",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "price": {
+            "type": "number",
+            "description": "Sale price. Must be greater than zero, with at most 2 decimal digits (matches the DECIMAL(12,2) column).",
+            "example": 85000.0,
+            "exclusiveMinimum": 0
+          },
+          "categoryId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Id of an existing, active category",
+            "example": 2
+          },
+          "unitOfMeasureId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Id of an existing, active unit of measure",
+            "example": 1
+          }
+        },
+        "required": [
+          "categoryId",
+          "name",
+          "price",
+          "sku",
+          "unitOfMeasureId"
+        ]
+      },
+      "CategoryResponse": {
+        "type": "object",
+        "description": "A product category",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Generated identifier",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Category name",
+            "example": "EPP"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether the category is active",
+            "example": true
+          }
+        }
+      },
+      "ProductResponse": {
+        "type": "object",
+        "description": "A product of the catalog",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Generated identifier",
+            "example": 1
+          },
+          "sku": {
+            "type": "string",
+            "description": "Business identifier",
+            "example": "EPP-CASCO-001"
+          },
+          "name": {
+            "type": "string",
+            "description": "Product name",
+            "example": "Casco de seguridad"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description",
+            "example": "Casco de seguridad tipo I, ajuste con cricket"
+          },
+          "brand": {
+            "type": "string",
+            "description": "Brand",
+            "example": "3M"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Manufacturer reference",
+            "example": "H-700"
+          },
+          "price": {
+            "type": "number",
+            "description": "Sale price",
+            "example": 85000.0
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether the product is active",
+            "example": true
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryResponse",
+            "description": "Category the product belongs to"
+          },
+          "unitOfMeasure": {
+            "$ref": "#/components/schemas/UnitOfMeasureResponse",
+            "description": "Unit in which the product is measured"
+          }
+        }
+      },
+      "PermissionUpdateRequest": {
+        "type": "object",
+        "description": "Editable data of a permission. The key cannot be changed.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Unique, editable permission code",
+            "example": "permission.code",
+            "maxLength": 100,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "CategoryRequest": {
+        "type": "object",
+        "description": "Editable data of a category. The id and the active flag cannot be set by the client.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Category name. Stored exactly as received (no trimming or normalization). Must be unique.",
+            "example": "EPP",
+            "maxLength": 100,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "RoleCreateRequest": {
+        "type": "object",
+        "description": "Data to create a role. The key is set only here and can never change afterwards.",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Stable internal key. Unique and immutable once created.",
+            "example": "ROLE_KEY",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "name": {
+            "type": "string",
+            "description": "Unique, editable role name",
+            "example": "Nombre del rol",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "permissionIds": {
+            "type": "array",
+            "description": "Ids of existing permissions. May be empty: a role can exist without permissions.",
+            "items": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "permissionIds"
+        ]
+      },
+      "InventoryMovementRequest": {
+        "type": "object",
+        "description": "Data to register a stock entry or exit. The type is implied by the endpoint.",
+        "properties": {
+          "quantity": {
+            "type": "number",
+            "description": "Quantity to move. Always positive.",
+            "example": 10.0,
+            "exclusiveMinimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for the movement",
+            "example": "Compra a proveedor",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "responsibleUser": {
+            "type": "string",
+            "description": "Identifier of the person responsible for the movement",
+            "example": "jdoe",
+            "maxLength": 255,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "quantity",
+          "reason",
+          "responsibleUser"
+        ]
+      },
+      "InventoryMovementResponse": {
+        "type": "object",
+        "description": "A single inventory movement",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Generated identifier",
+            "example": 42
+          },
+          "productId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Product identifier",
+            "example": 1
+          },
+          "type": {
+            "type": "string",
+            "description": "Kind of movement",
+            "enum": [
+              "ENTRY",
+              "EXIT",
+              "ADJUSTMENT"
+            ]
+          },
+          "direction": {
+            "type": "string",
+            "description": "Effect on stock",
+            "enum": [
+              "INCREASE",
+              "DECREASE"
+            ]
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity moved",
+            "example": 10.0
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for the movement",
+            "example": "Compra a proveedor"
+          },
+          "responsibleUser": {
+            "type": "string",
+            "description": "Identifier of the person responsible for the movement",
+            "example": "jdoe"
+          },
+          "movementDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Moment the movement took place, assigned by the server"
+          }
+        }
+      },
+      "InventoryAdjustmentRequest": {
+        "type": "object",
+        "description": "Data to register a stock adjustment",
+        "properties": {
+          "quantity": {
+            "type": "number",
+            "description": "Quantity to move. Always positive; the effect on stock is determined by direction.",
+            "example": 2.0,
+            "exclusiveMinimum": 0
+          },
+          "direction": {
+            "type": "string",
+            "description": "Whether the adjustment increases or decreases the stock",
+            "enum": [
+              "INCREASE",
+              "DECREASE"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for the adjustment",
+            "example": "Conteo físico",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "responsibleUser": {
+            "type": "string",
+            "description": "Identifier of the person responsible for the adjustment",
+            "example": "jdoe",
+            "maxLength": 255,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "direction",
+          "quantity",
+          "reason",
+          "responsibleUser"
+        ]
+      },
+      "PermissionCreateRequest": {
+        "type": "object",
+        "description": "Data to create a permission. The key is set only here and can never change afterwards.",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Stable internal key. Unique and immutable once created.",
+            "example": "PERMISSION_KEY",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "code": {
+            "type": "string",
+            "description": "Unique, editable permission code",
+            "example": "permission.code",
+            "maxLength": 100,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "code",
+          "key"
+        ]
+      },
+      "AccessTokenRequest": {
+        "type": "object",
+        "description": "Credentials of an internal user. The password is never logged or returned.",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Username of the user",
+            "example": "jdoe",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "description": "Password of the user",
+            "example": "<password>",
+            "minLength": 1,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password",
+          "username"
+        ]
+      },
+      "AccessTokenResponse": {
+        "type": "object",
+        "description": "Access token to send as 'Authorization: Bearer <token>'. There is no refresh token.",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "Signed JWT (HS256). It identifies the user only; permissions are checked on every request"
+          },
+          "tokenType": {
+            "type": "string",
+            "description": "Token type",
+            "example": "Bearer"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Lifetime of the token in seconds",
+            "example": 900
+          }
+        }
+      },
+      "InventoryResponse": {
+        "type": "object",
+        "description": "The current stock of a product",
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Product identifier",
+            "example": 1
+          },
+          "currentQuantity": {
+            "type": "number",
+            "description": "Current available quantity. Zero if the product has no movement yet.",
+            "example": 120.0
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "description": "Access token obtained from POST /api/auth/token; valid for 15 minutes",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
