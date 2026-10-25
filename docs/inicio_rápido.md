@@ -4,7 +4,13 @@ Guía para levantar los servicios después de reiniciar el computador y demostra
 
 ## 1. Iniciar la máquina virtual
 
-Desde VirtualBox, inicia la máquina virtual Red Hat y espera a que termine de arrancar. Desde Ubuntu, verifica el acceso:
+La máquina virtual Red Hat se ejecuta en QEMU/KVM, administrada con libvirt (dominio `red-hat-enterprise-linux-9.8`, red `default` con puerta de enlace `192.168.122.1`). Iníciala desde `virt-manager` o con `virsh` y espera a que termine de arrancar:
+
+```bash
+virsh -c qemu:///system start red-hat-enterprise-linux-9.8
+```
+
+Desde Ubuntu, verifica el acceso:
 
 ```bash
 ssh jairo@192.168.122.148 'hostname'
@@ -16,18 +22,20 @@ En una terminal de Ubuntu:
 
 ```bash
 sudo systemctl start docker
-docker start student-mysql
+docker start solgases-mysql
 docker start solgases-sonarqube
 docker start solgases-jenkins
 docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 ```
 
-`student-mysql` es el nombre del contenedor MySQL; la base de datos utilizada por SOLGASES se llama `solgases`. Jenkins debe quedar disponible en `http://localhost:8080` y SonarQube en `http://localhost:9000`.
+La base de datos de SOLGASES corre en el contenedor `solgases-mysql`, definido en [`docker-compose.yml`](../docker-compose.yml): Oracle MySQL 8.4.12, base `solgases`, volumen `solgases-mysql84-data`, publicado en `192.168.122.1:3307`. Si el contenedor no existe todavía, créalo desde la raíz del repositorio con `docker compose up -d` (requiere un `.env` creado a partir de `.env.example`). Jenkins debe quedar disponible en `http://localhost:8080` y SonarQube en `http://localhost:9000`.
 
-Si MySQL publica el puerto `3307` en Ubuntu, puedes comprobarlo así:
+> **No uses `student-mysql`.** Es un contenedor MySQL 8.0 de otro proyecto (Compose `student-backend`, puerto `3306`) y no forma parte de SOLGASES. El volumen MySQL 8.0 `solgases_solgases-mysql-data` es la copia histórica de SOLGASES conservada como respaldo de reversión; no tiene contenedor activo (ver `mvp1.md`, Incremento 7).
+
+MySQL se publica solo en la dirección de la red de libvirt (`192.168.122.1`), no en `127.0.0.1`. Esa red debe estar activa para que el contenedor arranque. Para comprobar el puerto:
 
 ```bash
-timeout 3 bash -c '</dev/tcp/127.0.0.1/3307' \
+timeout 3 bash -c '</dev/tcp/192.168.122.1/3307' \
   && echo "MySQL disponible" \
   || echo "Revisa el contenedor y el puerto de MySQL"
 ```
@@ -69,7 +77,7 @@ El inicio del dominio carga el perfil `dev` y la clave JWT desde `/home/jairo/.s
 
 ## 4. Ejecutar el pipeline de Jenkins
 
-Abre `http://localhost:8080`, entra al trabajo **solgases-ci** y selecciona **Construir ahora**. En **Stage View**, comprueba las etapas de compilación, pruebas, análisis y despliegue. Con la configuración actual, SonarQube puede dejar el resultado general inestable por el Quality Gate, aunque la etapa de despliegue termine correctamente.
+Abre `http://localhost:8080`, entra al trabajo **solgases-ci** y selecciona **Construir ahora**. En **Stage View**, comprueba las etapas de compilación, pruebas, análisis y despliegue. El Quality Gate no bloquea el despliegue: si su estado no es `OK`, el build queda inestable (`UNSTABLE`) aunque la etapa de despliegue termine correctamente. El equipo confirmó que el build **#12** terminó en verde, con Quality Gate **Passed** y despliegue a WebLogic incluido (ver [`DevOps.md`](DevOps.md#evidencia-resumida)).
 
 ## 5. Demostrar la aplicación
 

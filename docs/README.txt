@@ -1,207 +1,151 @@
 SOLGASES APP
-Documentación del proyecto
-==========================
+Índice de la documentación (carpeta docs/)
+==========================================
 
-Esta carpeta contiene la documentación base utilizada para analizar, planificar y desarrollar SOLGASES APP.
+Esta carpeta reúne la documentación de SOLGASES APP: una API backend
+(Java 21, Spring Boot 3.5.16, MySQL) para gestionar catálogo, inventario,
+usuarios, roles y permisos de SOLGASES, empresa de seguridad industrial de
+Sogamoso, Boyacá (Colombia).
 
-La documentación está separada por responsabilidad para evitar mezclar requisitos de negocio, reglas técnicas, planificación del proyecto y ejecución de un MVP concreto.
+Las rutas de este índice son relativas a la carpeta docs/. En GitHub:
 
-ARCHIVOS
---------
+  https://github.com/JairoCastanedaP/solgases/tree/develop/docs
 
-1. lineamientos.md
-
-Contiene los lineamientos técnicos y de desarrollo que deben respetarse durante la construcción del proyecto.
-
-Define, entre otros aspectos:
-
-- Lenguaje y versión de Java.
-- Versión de Spring Boot.
-- Tecnologías permitidas.
-- Estructura del proyecto.
-- Arquitectura limpia en los módulos Maven domain, application e infrastructure.
-- Principios SOLID.
-- Convenciones de desarrollo.
-- Uso de DTOs.
-- Persistencia con Spring Data JPA y MySQL.
-- Configuración y manejo de secretos.
-- Pruebas.
-- Documentación OpenAPI.
-- Colección Postman.
-- Reglas para el desarrollo asistido por IA.
-
-Este documento representa las reglas técnicas de referencia del proyecto.
+La presentación general del repositorio está en el README.md de la raíz
+(../README.md).
 
 
-2. analisis_requerimientos_solgases.md
+DOS TIPOS DE DOCUMENTO
+----------------------
 
-Contiene el análisis de los requerimientos de SOLGASES APP.
+[PLAN]  Alcance y planificación: qué se pidió, qué reglas se aplican y qué
+        se decidió construir. Pueden contener historia y decisiones
+        pendientes.
 
-Incluye:
-
-- Contexto del negocio.
-- Objetivo general.
-- Alcance general.
-- Actores.
-- Requerimientos funcionales.
-- Requerimientos no funcionales.
-- Reglas de negocio iniciales.
-- Modelo conceptual.
-- Criterios de aceptación de alto nivel.
-- Decisiones pendientes.
-- Supuestos.
-- Recomendaciones técnicas adicionales.
-
-Este documento responde principalmente a la pregunta:
-
-"¿Qué necesita SOLGASES APP?"
+[IMPL]  Implementación actual: cómo está construida y desplegada la
+        solución hoy. Si un documento [PLAN] y uno [IMPL] no coinciden,
+        el código y los documentos [IMPL] describen el estado vigente.
 
 
-3. roadmap_mvps_solgases.md
+1. ENTENDER EL PROYECTO
+-----------------------
 
-Contiene la propuesta de evolución del sistema mediante MVPs.
+[PLAN] analisis_requerimientos_solgases.md
+       Contexto del negocio, actores, requerimientos funcionales y no
+       funcionales, reglas de negocio, supuestos y decisiones pendientes.
+       Responde: "¿Qué necesita SOLGASES APP?"
 
-Define la división progresiva del proyecto, comenzando por el backend y evolucionando posteriormente hacia:
+[PLAN] lineamientos.md
+       Estándares técnicos obligatorios: stack, estructura en módulos
+       domain / application / infrastructure, persistencia, secretos,
+       pruebas, OpenAPI, Postman y reglas de desarrollo asistido por IA.
+       Es la fuente de verdad técnica del proyecto.
 
-- Backend.
-- Frontend administrativo.
-- Catálogo público.
-- Chatbot.
-- WhatsApp.
-- Gestión avanzada de operación.
-- Analítica y reportes.
+[PLAN] roadmap_mvps_solgases.md
+       Evolución por MVP: backend, frontend administrativo, catálogo
+       público, chatbot, WhatsApp, operación y analítica.
+       Responde: "¿Cómo se construirá la solución completa?"
 
-Este documento responde principalmente a la pregunta:
+[PLAN] mvp1.md
+       Alcance del MVP 1 (solo backend) dividido en incrementos, con
+       criterios de aceptación, checkpoints y decisiones aprobadas o
+       pendientes. También registra el estado y la verificación de cada
+       incremento, por lo que es el documento más detallado del proyecto.
+       Responde: "¿Qué se construye ahora y en qué estado está?"
 
-"¿Cómo vamos a construir progresivamente la solución completa?"
-
-
-4. mvp1.md
-
-Contiene la definición específica del MVP 1.
-
-Es el documento de trabajo utilizado para delimitar qué se construirá en la primera etapa del proyecto.
-
-El MVP 1 está enfocado exclusivamente en backend y contempla, de acuerdo con la documentación actual:
-
-- Base del proyecto.
-- Arquitectura.
-- Usuarios.
-- Roles y permisos.
-- Categorías.
-- Productos.
-- Inventario.
-- Validaciones.
-- Manejo de errores.
-- Pruebas.
-- OpenAPI.
-- Postman.
-
-También establece:
-
-- Alcance.
-- Fuera de alcance.
-- Orden de implementación.
-- Dependencias.
-- Criterios de aceptación.
-- Checkpoints.
-- Decisiones pendientes.
-
-Este documento responde principalmente a la pregunta:
-
-"¿Qué vamos a construir ahora?"
+[PLAN] prompt_inicial_mvp1.md
+       REFERENCIA HISTÓRICA. Conserva el contexto y el prompt con que se
+       inició el trabajo con Claude Code en el MVP 1 (analizar antes de
+       implementar). No es una instrucción vigente ni sirve para reiniciar
+       el desarrollo; los ciclos actuales se rigen por ../CLAUDE.md,
+       lineamientos.md y mvp1.md.
 
 
-5. prompt_inicial_mvp1.md
+2. CONOCER LA SOLUCIÓN
+----------------------
 
-Contiene el prompt inicial que se utilizará para comenzar el trabajo con Claude Code.
+[IMPL] architecture.md
+       Arquitectura implementada: contexto, módulos y dependencias, flujo
+       de una solicitud, seguridad (JWT, Argon2id, permisos), perfiles,
+       despliegue, pipeline y decisiones pendientes de validar. Incluye
+       diagramas Mermaid.
 
-Su objetivo no es solicitar inmediatamente la implementación completa del MVP 1.
+[IMPL] data-model.md
+       Modelo de datos vigente: tablas, relaciones y restricciones de
+       catálogo, inventario, usuarios, roles, permisos y credenciales.
 
-La primera interacción debe utilizarse para que Claude Code:
-
-1. Lea la documentación.
-2. Comprenda el contexto.
-3. Revise el estado actual del repositorio.
-4. Analice el alcance del MVP 1.
-5. Identifique supuestos, inconsistencias y decisiones pendientes.
-6. Proponga una estrategia inicial.
-7. Espere autorización antes de modificar o generar código.
-
-Este enfoque permite desarrollar el MVP 1 progresivamente y revisar cada incremento antes de continuar.
-
-
-ORDEN RECOMENDADO DE LECTURA
-----------------------------
-
-Para comprender el proyecto:
-
-1. lineamientos.md
-2. analisis_requerimientos_solgases.md
-3. roadmap_mvps_solgases.md
-4. mvp1.md
-5. prompt_inicial_mvp1.md
-
-Para iniciar el desarrollo con Claude Code:
-
-1. Claude Code debe leer los cuatro documentos de referencia.
-2. Debe analizar el repositorio existente.
-3. Debe presentar su propuesta inicial.
-4. El equipo debe revisar la propuesta.
-5. Solo después se autoriza la implementación.
+[IMPL] adr/
+       Registros de decisiones de arquitectura (ADR):
+         adr/0001-modularidad-clean-architecture.md
+         adr/0002-mysql-y-datasource-jndi.md
+         adr/0003-jwt-argon2id.md
+         adr/0004-jenkins-sonarqube-weblogic.md
+         adr/0005-java-21-en-webLogic.md
+         adr/0006-limites-arquitectonicos-automatizados.md
 
 
-RELACIÓN ENTRE LOS DOCUMENTOS
------------------------------
+3. EJECUTAR Y PROBAR
+--------------------
 
-lineamientos.md
-    |
-    | define las reglas técnicas
-    v
-analisis_requerimientos_solgases.md
-    |
-    | define las necesidades del negocio
-    v
-roadmap_mvps_solgases.md
-    |
-    | define la evolución completa
-    v
-mvp1.md
-    |
-    | define el alcance actual
-    v
-prompt_inicial_mvp1.md
-    |
-    | inicia la interacción con Claude Code
-    v
-IMPLEMENTACIÓN INCREMENTAL
+[IMPL] inicio_rápido.md
+       Pasos para levantar la VM, los contenedores (MySQL, SonarQube,
+       Jenkins) y WebLogic, ejecutar el pipeline y abrir Swagger UI.
+       En GitHub: inicio_r%C3%A1pido.md
+
+[IMPL] openapi.json
+       Especificación OpenAPI del contrato HTTP de la API.
+
+[IMPL] postman/
+       Colección y entorno de Postman generados a partir de OpenAPI, sin
+       credenciales reales:
+         postman/solgases.postman_collection.json
+         postman/solgases.postman_environment.json
+         postman/generate_postman_collection.py  (generador)
+
+
+4. REVISAR LA ENTREGA
+---------------------
+
+[IMPL] DevOps.md
+       Implementación de CI/CD: Jenkins, SonarQube, MySQL, WebLogic en la
+       VM Red Hat, etapas del pipeline, despliegue por SSH/WLST,
+       diagnóstico, límites y evidencia resumida (incluido el estado del
+       Quality Gate, con el alcance exacto de cada métrica).
+
+       presentacion_solgases_mvp1.pptx
+       Presentación del MVP 1 (PowerPoint; en GitHub se descarga, no se
+       visualiza en línea).
+
+
+ORDEN DE LECTURA SUGERIDO
+-------------------------
+
+Para una visión rápida (por ejemplo, revisión técnica o reclutamiento):
+
+  1. ../README.md
+  2. architecture.md
+  3. adr/
+  4. DevOps.md
+
+Para trabajar en el proyecto:
+
+  1. lineamientos.md
+  2. analisis_requerimientos_solgases.md
+  3. roadmap_mvps_solgases.md
+  4. mvp1.md
+  5. architecture.md, data-model.md y adr/
+  6. inicio_rápido.md
 
 
 PRINCIPIO DE TRABAJO
 --------------------
 
-La documentación debe utilizarse como fuente de contexto para el desarrollo, pero no debe interpretarse como autorización para implementar todo de una sola vez.
+El MVP 1 se desarrolla en incrementos pequeños. Cada incremento sigue el
+ciclo:
 
-El MVP 1 se desarrollará mediante incrementos pequeños.
+  REQUERIMIENTO -> ANÁLISIS -> DISEÑO -> IMPLEMENTACIÓN -> COMPILACIÓN
+  -> PRUEBAS -> REVISIÓN -> APROBACIÓN -> SIGUIENTE INCREMENTO
 
-Cada incremento deberá seguir, como mínimo, este ciclo:
-
-REQUERIMIENTO
-    ->
-ANÁLISIS
-    ->
-DISEÑO
-    ->
-IMPLEMENTACIÓN
-    ->
-COMPILACIÓN
-    ->
-PRUEBAS
-    ->
-REVISIÓN
-    ->
-APROBACIÓN
-    ->
-SIGUIENTE INCREMENTO
-
-Cuando exista una decisión de arquitectura o negocio que no esté definida en los documentos, deberá identificarse como decisión pendiente en lugar de inventar un requisito.
+Cuando una decisión de arquitectura o de negocio no está definida en los
+documentos, se registra como decisión pendiente en lugar de inventar un
+requisito.
