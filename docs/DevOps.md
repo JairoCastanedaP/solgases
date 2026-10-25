@@ -35,7 +35,12 @@ Flujo general: Jenkins obtiene el código, compila, ejecuta pruebas, empaqueta e
 | WebLogic | 15.1.1, AdminServer en puerto 7001 |
 | Java VM | JDK 21.0.12.1, según la documentación del proyecto |
 
-Jenkins se administra como contenedor preexistente; docker-compose.sonar.yml define SonarQube y docker-compose.yml define la base SOLGASES. Durante el laboratorio también se encontró el contenedor antiguo student-mysql de otro proyecto (MySQL 8.0). student-mysql es nombre de contenedor, no de base de datos. Antes de iniciar/recrear MySQL, revisar docker ps -a y el datasource para no crear conflicto de puerto ni apuntar a una instancia distinta.
+Jenkins se administra como contenedor preexistente; docker-compose.sonar.yml define SonarQube y docker-compose.yml define la base SOLGASES en el contenedor solgases-mysql. Instancias MySQL que no se deben usar:
+
+- student-mysql: contenedor MySQL 8.0 de otro proyecto (Compose student-backend, puerto 3306). Es ajeno a SOLGASES; student-mysql es nombre de contenedor, no de base de datos.
+- Volumen solgases_solgases-mysql-data: copia histórica MySQL 8.0 de SOLGASES, conservada fuera de Compose como respaldo de reversión tras el corte a 8.4.12; no tiene contenedor activo.
+
+Antes de iniciar/recrear MySQL, revisar docker ps -a y el datasource para no crear conflicto de puerto ni apuntar a una instancia distinta.
 
 ## Jenkins
 
@@ -72,13 +77,19 @@ Definición en docker-compose.sonar.yml: contenedor solgases-sonarqube, Communit
 
 El token se generó en SonarQube y se guardó como credencial Jenkins. El análisis local usa SONAR_HOST_URL/SONAR_TOKEN desde .sonar.env. .env, .env.* y .sonar.env están ignorados por Git. Nunca imprimir sus contenidos.
 
-Clave de proyecto Maven: solgases. JaCoCo agregado se reporta desde infrastructure/target/site/jacoco-aggregate/jacoco.xml. En análisis recientes Quality Gate fue ERROR por incidencias en código nuevo (la UI mostró 31 incidencias nuevas y cero requeridas). Por decisión del usuario no se cambian ahora las reglas. Jenkins marca UNSTABLE si el estado no es OK y continúa al despliegue; por eso Quality Gate puede verse amarillo, Deploy verde y el resultado general inestable.
+Clave de proyecto Maven: solgases. JaCoCo agregado se reporta desde infrastructure/target/site/jacoco-aggregate/jacoco.xml. Por decisión del usuario no se cambian ahora las reglas del Quality Gate. Jenkins marca UNSTABLE si el estado no es OK y continúa al despliegue; por eso Quality Gate puede verse amarillo, Deploy verde y el resultado general inestable.
+
+Estado del Quality Gate:
+
+- Histórico: en análisis anteriores el Quality Gate fue ERROR por incidencias en código nuevo (la UI mostró 31 incidencias nuevas y cero requeridas).
+- Vigente, confirmado por el equipo (build #12): Quality Gate Passed. Métricas de New Code únicamente: 0 issues nuevos, 1 accepted issue, 93.1 % de cobertura sobre 431 líneas nuevas, 0.0 % de duplicación y 0 security hotspots. No son métricas de Overall Code ni indican que el proyecto completo tenga cero issues. La captura no está versionada en el repositorio.
+- Las coberturas JaCoCo de 91.7 % en domain y 99.1 % en application corresponden a una medición anterior, con alcance distinto; no se comparan con la cobertura de New Code de SonarQube.
 
 ## MySQL y datasource WebLogic
 
 El docker-compose.yml versionado define servicio mysql/contenedor solgases-mysql, Oracle MySQL 8.4.12 fijado por digest, volumen solgases-mysql84-data y publicación 192.168.122.1:3307 → contenedor:3306. El Compose lee DB_ROOT_PASSWORD, DB_USERNAME, DB_PASSWORD y opcionalmente DB_NAME/DB_PORT desde .env; base/usuario por defecto: solgases. No documentar valores de contraseñas.
 
-La VM usa la puerta de enlace 192.168.122.1 para alcanzar el Docker host; conexión TCP a puerto 3307 fue comprobada. También apareció el contenedor histórico student-mysql. Confirmar qué instancia usa el datasource antes de arrancar, borrar o migrar datos.
+La VM usa la puerta de enlace 192.168.122.1 para alcanzar el Docker host; conexión TCP a puerto 3307 fue comprobada. El contenedor student-mysql es ajeno a SOLGASES (ver «Componentes y versiones conocidas»). Confirmar qué instancia usa el datasource antes de arrancar, borrar o migrar datos.
 
 En WebLogic se creó datasource genérico SolgasesDS con JNDI jdbc/solgases, base solgases, usuario solgases y host/puerto accesibles desde la VM (192.168.122.1:3307 para el Compose versionado). La prueba de conexión en la consola WebLogic tuvo éxito.
 
@@ -186,4 +197,8 @@ Diagnóstico sin valores secretos:
 
 ## Evidencia resumida
 
-Deploy to WebLogic terminó verde tras corregir la carga de JWT_SECRET y configurar la llave SSH. Swagger y OpenAPI respondieron HTTP 200 en /infrastructure. Quality Gate puede quedar amarillo/inestable por ERROR de SonarQube; revisar por separado el resultado del build, el deployment y una operación funcional.
+Deploy to WebLogic terminó verde tras corregir la carga de JWT_SECRET y configurar la llave SSH. Swagger y OpenAPI respondieron HTTP 200 en /infrastructure.
+
+Según confirmó el equipo, el build #12 de solgases-ci terminó en verde y completó todas las etapas, incluido Deploy to WebLogic, con Quality Gate Passed (métricas de New Code en la sección SonarQube). La captura del build no está versionada en el repositorio.
+
+Como el Quality Gate no bloquea, un build futuro puede volver a quedar amarillo/inestable por ERROR de SonarQube; revisar por separado el resultado del build, el deployment y una operación funcional.

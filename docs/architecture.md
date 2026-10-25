@@ -97,7 +97,7 @@ La matriz de evaluación menciona BCrypt. La implementación y las decisiones de
 | Local | URL JDBC parametrizada por `DB_HOST`, `DB_PORT`, `DB_NAME`; valores locales definidos en `.env` |
 | WebLogic en VM | DataSource `SolgasesDS`, JNDI `jdbc/solgases`; usuario y contraseña se configuran en el servidor |
 
-El Compose del proyecto expone MySQL en el anfitrión por el puerto `3307`; desde la VM se usa la dirección de gateway del anfitrión y ese puerto. No usar el contenedor `student-mysql`, que pertenece a otro proyecto.
+El Compose del proyecto expone MySQL en el anfitrión por el puerto `3307`; desde la VM se usa la dirección de gateway del anfitrión y ese puerto. El contenedor de SOLGASES es `solgases-mysql` (MySQL 8.4.12). No usar el contenedor `student-mysql`, que pertenece a otro proyecto.
 
 La aplicación se publica en WebLogic bajo `/infrastructure`. La documentación operativa y los comandos de arranque están en [`inicio_rápido.md`](inicio_rápido.md); el detalle de Jenkins y la configuración de herramientas está en [`DevOps.md`](DevOps.md).
 
@@ -117,7 +117,7 @@ La etapa de despliegue solo puede considerarse exitosa si WLST concluye el redep
 
 ## 8. Pruebas y observabilidad
 
-El pipeline registra resultados JUnit y archiva artefactos. Las pruebas de integración de seguridad cubren respuestas no autorizadas y tokens inválidos/expirados. Se han reportado coberturas locales altas en `domain` y `application`; reproducir las cifras con el reporte del build antes de presentarlas como métrica vigente.
+El pipeline registra resultados JUnit y archiva artefactos. Las pruebas de integración de seguridad cubren respuestas no autorizadas y tokens inválidos/expirados. Se han reportado coberturas locales altas en `domain` y `application` (JaCoCo, medición anterior: 91.7 % y 99.1 %); reproducir las cifras con el reporte del build antes de presentarlas como métrica vigente. En el build #12, confirmado por el equipo, SonarQube reportó 93.1 % de cobertura sobre 431 líneas de **New Code**; esa cifra tiene otro alcance y no sustituye a las de JaCoCo por módulo.
 
 ## 9. Decisiones pendientes de validar
 
@@ -125,7 +125,7 @@ El pipeline registra resultados JUnit y archiva artefactos. Las pruebas de integ
 |---|---|---|
 | Java 21 frente a Java 25 | POM, lineamientos y despliegue WebLogic usan Java 21; una meta de la rúbrica menciona Java 25 | Confirmar cuál versión exige la evaluación; no migrar sin validar WebLogic |
 | Argon2id frente a BCrypt | Código y MVP adoptan Argon2id; rúbrica menciona BCrypt | Acordar con docente si la rúbrica es normativa o solo indicativa |
-| Quality Gate | Actualmente no bloquea el despliegue; la última medición observada dio ERROR | Mantener el comportamiento acordado; documentar el riesgo y decidir una política de bloqueo cuando el equipo lo determine |
+| Quality Gate | Actualmente no bloquea el despliegue. Mediciones anteriores dieron ERROR; en el build #12, confirmado por el equipo, el resultado fue Passed (métricas solo de New Code, ver [`DevOps.md`](DevOps.md#sonarqube)) | Mantener el comportamiento acordado; documentar el riesgo y decidir una política de bloqueo cuando el equipo lo determine |
 
 ## 10. Fuentes internas
 
