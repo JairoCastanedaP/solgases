@@ -1,5 +1,7 @@
 # SOLGASES APP — Backend del MVP 1
 
+<p align="center"><img src="docs/images/logo/logo-horizontal.png" alt="Logo de SOLGASES" width="320"></p>
+
 API REST para gestionar el catálogo, el inventario, los usuarios, los roles y los permisos de **SOLGASES**, empresa de seguridad industrial de Sogamoso, Boyacá (Colombia). SOLGASES comercializa elementos de protección personal y gases industriales, recarga extintores y repara equipos de soldadura.
 
 Es el proyecto final de un curso de desarrollo de software asistido por IA. Las reglas técnicas y de trabajo con IA están escritas en [`docs/lineamientos.md`](docs/lineamientos.md) y [`CLAUDE.md`](CLAUDE.md).
