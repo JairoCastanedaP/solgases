@@ -4,6 +4,14 @@ API REST para gestionar el catálogo, el inventario, los usuarios, los roles y l
 
 Es el proyecto final de un curso de desarrollo de software asistido por IA. Las reglas técnicas y de trabajo con IA están escritas en [`docs/lineamientos.md`](docs/lineamientos.md) y [`CLAUDE.md`](CLAUDE.md).
 
+## Reconocimientos
+
+El proyecto obtuvo la **máxima calificación** del curso y una **mención de honor por excelencia académica**. Haz clic en cada imagen para abrir el PDF original.
+
+| Mención de honor por el proyecto | Certificado de finalización del curso |
+|---|---|
+| [![Mención de honor por excelencia académica](docs/images/recognitions/mencion-honor-excelencia.png)](docs/Certificado%20finalizacion%20curso/CASTA%C3%91EDA%20PEDRAZA%20JAIRO%20ALEJANDRO%20-%20Certificado%20de%20Excelencia.pdf) | [![Certificado de finalización del curso](docs/images/recognitions/certificado-finalizacion-curso.png)](docs/Certificado%20finalizacion%20curso/CASTA%C3%91EDA%20PEDRAZA%20JAIRO%20ALEJANDRO%20.pdf) |
+
 ## Qué incluye el MVP 1
 
 El MVP 1 es **solo backend** ([`docs/mvp1.md`](docs/mvp1.md)):
