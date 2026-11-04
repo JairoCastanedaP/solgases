@@ -61,6 +61,17 @@ El [`Jenkinsfile`](Jenkinsfile) ejecuta estas etapas: checkout → compilación 
 - **Métricas de Sonar:** son **solo de New Code**. Están en [`docs/DevOps.md`](docs/DevOps.md#sonarqube) con su alcance exacto.
 - **Política del Quality Gate:** es no bloqueante por decisión documentada en [ADR-0004](docs/adr/0004-jenkins-sonarqube-weblogic.md).
 
+## Evidencia visual
+
+Estas capturas muestran el flujo de CI/CD, la calidad del código, la API y su despliegue. Haz clic en una imagen para verla en tamaño completo.
+
+| CI/CD y calidad | API y autenticación |
+|---|---|
+| **Pipeline Jenkins**<br>[![Pipeline exitoso de Jenkins](docs/images/evidence/jenkins-successful-pipeline.png)](docs/images/evidence/jenkins-successful-pipeline.png) | **Documentación de la API desde un cliente externo**<br>[![Swagger UI desde cliente externo](docs/images/evidence/swagger-ui-external-client.png)](docs/images/evidence/swagger-ui-external-client.png) |
+| **Análisis SonarQube**<br>[![Quality Gate aprobado en SonarQube](docs/images/evidence/sonarqube-quality-gate-passed.png)](docs/images/evidence/sonarqube-quality-gate-passed.png) | **Autenticación con Postman**<br>[![Solicitud de token de autenticación en Postman](docs/images/evidence/postman-authentication-token-response.png)](docs/images/evidence/postman-authentication-token-response.png) |
+| **Registros de inventario en MySQL**<br>[![Registros de movimientos de inventario en MySQL](docs/images/evidence/mysql-inventory-movement-records.png)](docs/images/evidence/mysql-inventory-movement-records.png) | **Swagger UI dentro de la máquina virtual**<br>[![Swagger UI en la máquina virtual](docs/images/evidence/swagger-ui-virtual-machine.png)](docs/images/evidence/swagger-ui-virtual-machine.png) |
+| **Datasource JNDI en WebLogic**<br>[![Configuración del datasource JNDI en WebLogic](docs/images/evidence/weblogic-jndi-datasource-configuration.png)](docs/images/evidence/weblogic-jndi-datasource-configuration.png) | **Aplicación desplegada en WebLogic**<br>[![Aplicación SOLGASES activa en WebLogic](docs/images/evidence/weblogic-active-application-deployment.png)](docs/images/evidence/weblogic-active-application-deployment.png) |
+
 ## Cómo empezar
 
 1. **Lee el contexto:** este README y luego [`docs/architecture.md`](docs/architecture.md).
